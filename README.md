@@ -16,7 +16,7 @@ C:\Program Files\MySQL\MySQL Server 8.0\bin
 
 
 
-`mysql --version` 查看版本号
+使用 `mysql -V` 或 `mysql --version` 查看版本号
 
 ![mysql --version](./imgs/mysql-version.png)
 
