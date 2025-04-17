@@ -48,8 +48,39 @@ C:\Program Files\MySQL\MySQL Server 8.0\bin
 ![mysql-login-set-ip-port](./imgs/mysql-login-set-ip-port.png)
 
 
-## 常见操作命令
 
+## mysql 目录结构
+
+| 目录 | 说明 |
+| -- | -- |
+| `C:\Program Files\MySQL\MySQL Server 8.0` | mysql的服务端和客户端的安装主目录 (包含可执行文件、库文件等) |
+| `C:\ProgramData\MySQL\MySQL Server 8.0` | 数据存储目录 (由 `datadir`)，存放数据库文件，日志等核心数据(默认隐藏显示) |
+
+> `C:\Program Files\MySQL\MySQL Server 8.0`
+
+![mysql program files](./imgs/mysql-program-files-dir-struct.png)
+
+> `C:\ProgramData\MySQL\MySQL Server 8.0`
+
+![mysql program data](./imgs/mysql-program-data-dir-struct.png)
+
+`my.ini` 是 mysql 的主要配置文件;
+
+### `C:\ProgramData\MySQL\MySQL Server 8.0\Data` 数据存储目录 (`datadir`)
+
+存储用户创建的数据库的目录
+
+```text
+C:\ProgramData\MySQL\MySQL Server 8.0\Data\
+
+├─mysql                         # 系统数据库目录 (用户、权限等元素据)
+├─performance_schema            # 性能监控数据库目录
+└─testdb                        # 用户创建的 testdb 数据库目录
+        user.ibd                # InnoDB 表的数据和索引文件
+```
+
+
+## 常见操作命令
 
 ### 数据库操作命令
 
