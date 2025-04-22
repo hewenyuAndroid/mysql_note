@@ -562,6 +562,93 @@ SELECT employee_id empId, first_name firstName, salary 月工资, salary*(1 + IF
 |   147 | Alberto     | 12000.00 | 187200.00 |           0.30 |
 ```
 
+#### 着重号
+
+如果表名，字段名和保留关键字冲突时，需要使用着重号 `` 包裹起来;
+
+```sql
+# 错误示例
+# ORDER 为保留关键字，直接使用会报错
+SELECT * FROM ORDER;
+
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ORDER' at line 1
+
+# 使用着重号
+SELECT * FROM `ORDER`;
++----------+------------+
+| order_id | order_name |
++----------+------------+
+|        1 | shkstart   |
+|        2 | tomcat     |
+|        3 | dubbo      |
++----------+------------+
+3 rows in set (0.00 sec)
+```
+
+
+
+#### 查询常数
+
+`SELECT` 查询还可以对常数进行查询，查询常数时，会在查询结果集中增加一列固定的常数列，这一列的取值就是查询时指定的常数，而不是从表中查询得到;
+
+```sql
+# 查询常数, hangzhou, 123 为两个常数
+SELECT 'hangzhou', 123, employee_id, last_name FROM employees;
+
++----------+-----+-------------+-----------+
+| hangzhou | 123 | employee_id | last_name |
++----------+-----+-------------+-----------+
+| hangzhou | 123 |         100 | King      |
+| hangzhou | 123 |         101 | Kochhar   |
+| hangzhou | 123 |         102 | De Haan   |
+| hangzhou | 123 |         103 | Hunold    |
+| hangzhou | 123 |         104 | Ernst     |
+| hangzhou | 123 |         105 | Austin    |
++----------+-----+-------------+-----------+
+10 rows in set (0.00 sec)
+```
+
+
+### 显示表结构
+
+- `DESCRIBE 表名;`
+- `DESC 表名;`  // 简写方式
+
+显示的表结构信息如下:
+
+- `Field`: 字段名称;
+- `Type`: 字段类型，这里 barcode, goodsname是文本类型，price是整数类型;
+- `Null`: 表示该列是否可以存储 `NULL` 值;
+- `Key`: 表示该列是否已经被编制索引。
+  - `PRI`: 表示该列是表主键的一部分;
+  - `UNI`: 表示该列是 `UNIQUE` 索引的一部分;
+  - `MUL`: 表示在列中某个给定值允许出现多次;
+- `Default`: 表示该列是否有默认值，如果有，显示对应的默认值;
+- `Extra`: 表示可以获取的与给定列有关的附加信息，例如: `AUTO_INCREMENT` 等;
+
+```sql
+# 显示表结构信息
+DESC employees;
++----------------+-------------+------+-----+---------+-------+
+| Field          | Type        | Null | Key | Default | Extra |
++----------------+-------------+------+-----+---------+-------+
+| employee_id    | int         | NO   | PRI | 0       |       |
+| first_name     | varchar(20) | YES  |     | NULL    |       |
+| last_name      | varchar(25) | NO   |     | NULL    |       |
+| email          | varchar(25) | NO   | UNI | NULL    |       |
+| phone_number   | varchar(20) | YES  |     | NULL    |       |
+| hire_date      | date        | NO   |     | NULL    |       |
+| job_id         | varchar(10) | NO   | MUL | NULL    |       |
+| salary         | double(8,2) | YES  |     | NULL    |       |
+| commission_pct | double(2,2) | YES  |     | NULL    |       |
+| manager_id     | int         | YES  | MUL | NULL    |       |
+| department_id  | int         | YES  | MUL | NULL    |       |
++----------------+-------------+------+-----+---------+-------+
+11 rows in set (0.00 sec)
+```
+
+
+
 
 
 
