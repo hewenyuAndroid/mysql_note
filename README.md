@@ -355,7 +355,218 @@ source C:\software\mysql\mysqlNote\sql\testdb.sql
 
 ![source testdb sql](./imgs/mysql-source-sql-testdb.png)
 
-## select 语句
+## SELECT 语句
+
+最基本的 `SELECT` 语句: `SElECT 字段1， 字段2, ... FROM 表名;`
+
+```sql
+SELECT 1+2, 2*3;
+SELECT 1+2, 2*3 FROM DUAL;
+
+# 上述两条语句作用相同，DUAL 表示伪表，得到如下输出
+
++-----+-----+
+| 1+2 | 2*3 |
++-----+-----+
+|   3 |   6 |
++-----+-----+
+1 row in set (0.00 sec)
+```
+
+导入数据库文件 `source atguigu.sql`     // sql 文件详见 [atguigu.sql](./sql/atguigu.sql)
+
+
+### `SELECT` 没有子句
+
+```sql
+SElECT 1; # 没有任何子句
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set (0.00 sec)
+
+SELECT 7/3; # 没有任何子句1
++--------+
+| 7/2    |
++--------+
+| 3.5000 |
++--------+
+1 row in set (0.00 sec)
+```
+
+### `SELECT ... FROM`
+
+#### `SELECT` 基本使用
+
+```sql
+# 语法
+# SELECT 标识选择哪些列 FROM 标识从哪张表中选择;
+
+
+# 选择全部列
+SELECT * FROM departments;
++---------------+-----------------+------------+-------------+
+| department_id | department_name | manager_id | location_id |
++---------------+-----------------+------------+-------------+
+|            10 | Administration  |        200 |        1700 |
+|            20 | Marketing       |        201 |        1800 |
+|            30 | Purchasing      |        114 |        1700 |
+|            40 | Human Resources |        203 |        2400 |
++---------------+-----------------+------------+-------------+
+4 rows in set (0.00 sec)
+
+
+# 选择特定的列
+SELECT department_id, department_name FROM departments;
++---------------+-----------------+
+| department_id | department_name |
++---------------+-----------------+
+|            10 | Administration  |
+|            20 | Marketing       |
+|            30 | Purchasing      |
+|            40 | Human Resources |
++---------------+-----------------+
+4 rows in set (0.00 sec)
+
+```
+
+- 通配符 `*`: 一般情况下，除非需要使用表中所有的字段，否则最好不要使用通配符 `*`。使用通配符虽然可以节省输入查询语句的时间，但是获取不需要的列数据通常会降低查询和所使用的应用程序的效率，通配符的优势是当不知道所需要的列名时，可以通过通配符获取到。
+- mysql 中的sql语句是不区分大小写的，因此 `SELECT` 和 `select` 的作用是相同的。
+
+#### 列的别名
+
+1. 列的别名使用 `AS` (`alias`) 关键字，关键字可以省略；
+2. 列的别名可以使用一对 `""` 包裹起来，如果别名中包含空格时，就必须使用双引号;
+
+
+```sql
+# 使用 as 关键字，关键字可以省略
+SELECT department_id AS dept_id, department_name dept_name FROM departments;
+
++---------+-----------------+
+| dept_id | dept_name       |
++---------+-----------------+
+|      10 | Administration  |
+|      20 | Marketing       |
+|      30 | Purchasing      |
+|      40 | Human Resources |
++---------+-----------------+
+4 rows in set (0.00 sec)
+
+# 别名可以使用双引号包裹，如果别名包含空格，必须使用双引号包裹
+SELECT department_id AS "dept id", department_name "dept name" FROM departments;
++---------+-----------------+
+| dept id | dept name       |
++---------+-----------------+
+|      10 | Administration  |
+|      20 | Marketing       |
+|      30 | Purchasing      |
+|      40 | Human Resources |
++---------+-----------------+
+4 rows in set (0.00 sec)
+```
+
+#### 去除重复行
+
+1. 默认情况下查询会返回全部行，包含重复的行;
+2. 在 `SELECT` 语句中使用关键字 `DISTINCT` 去除重复行;
+3. `DISTINCT` 关键字需要放在所有字段名前面，如果查询的是多个字段，此时去重的判断条件是所有字段组合唯一;
+
+```sql
+# 默认包含重复行
+select department_id from employees;
++---------------+
+| department_id |
++---------------+
+|          NULL |
+|            10 |
+|            20 |
+|            20 |
+|            30 |
+|            30 |
+....
+
+# 使用 DISTINCT 关键字去除重复行;
+SELECT DISTINCT department_id FROM employees;
++---------------+
+| department_id |
++---------------+
+|          NULL |
+|            10 |
+|            20 |
+|            30 |
+|            40 |
+|            50 |
+|            60 |
+|            70 |
+|            80 |
+|            90 |
+|           100 |
+|           110 |
++---------------+
+12 rows in set (0.00 sec)
+
+# 查询多个字段使用 distinct 字段，此时去重判断的条件是所有字段组合后是否重复
+SELECT DISTINCT department_id, salary FROM employees;
++---------------+----------+
+| department_id | salary   |
++---------------+----------+
+|            90 | 24000.00 |
+|            90 | 17000.00 |
+|            60 |  9000.00 |
+|            60 |  6000.00 |
+|            60 |  4800.00 |
+|            60 |  4200.00 |
+|           100 | 12000.00 |
+|           100 |  9000.00 |
+```
+
+#### 空值参与运算
+
+1. 空值: `NULL`;
+2. 空值 `NULL` 不等同于 `0`、`''`、`'NULL'`;
+3. 空值参与运算，结果也一定是空值;
+4. 空值参与运算时，引入 `IFNULL` 解决空值计算为 `NULL` 问题;
+5. 在 `mysql` 里，一个空字符串的长度是 0，而一个空值的长度是空。且在 MySQL 里，空值是占空间的。
+
+```sql
+# 空值参与运算时，结果也一定是空值
+# salary*(1 + commission_pct)*12 计算年工资，commission_pct 为空值时，计算的年工资也是空值
+
+ SELECT employee_id empId, first_name firstName, salary 月工资, salary*(1 + commission_pct)*12 年工资, commission_pct FROM employees;
++-------+-------------+----------+-----------+----------------+
+| empId | firstName   | 月工资   | 年工资    | commission_pct |
++-------+-------------+----------+-----------+----------------+
+|   142 | Curtis      |  3100.00 |      NULL |           NULL |
+|   143 | Randall     |  2600.00 |      NULL |           NULL |
+|   144 | Peter       |  2500.00 |      NULL |           NULL |
+|   145 | John        | 14000.00 | 235200.00 |           0.40 |
+|   146 | Karen       | 13500.00 | 210600.00 |           0.30 |
+|   147 | Alberto     | 12000.00 | 187200.00 |           0.30 |
+
+
+# 使用 IFNULL 解决空值问题;
+# IFNULL(commission_pct, 0) 表示 commission_pct 为空值时，使用0替代
+
+SELECT employee_id empId, first_name firstName, salary 月工资, salary*(1 + IFNULL(commission_pct, 0))*12 年工资, commission_pct FROM employees;
++-------+-------------+----------+-----------+----------------+
+| empId | firstName   | 月工资   | 年工资    | commission_pct |
++-------+-------------+----------+-----------+----------------+
+|   142 | Curtis      |  3100.00 |  37200.00 |           NULL |
+|   143 | Randall     |  2600.00 |  31200.00 |           NULL |
+|   144 | Peter       |  2500.00 |  30000.00 |           NULL |
+|   145 | John        | 14000.00 | 235200.00 |           0.40 |
+|   146 | Karen       | 13500.00 | 210600.00 |           0.30 |
+|   147 | Alberto     | 12000.00 | 187200.00 |           0.30 |
+```
+
+
+
+
+
+
 
 
 
