@@ -1286,6 +1286,7 @@ SELECT 1 << 1, 0 << 1, 2 << 4, NULL << 1 FROM dual;
   - `ASC (ascend)`: 升序
   - `DESC (DESCEND)`: 降序
 - `ORDER BY` 子句在 `SELECT` 语句的结尾;
+- `ORDER BY` 可以使用字段的别名;
 
 ### 单列排序
 
@@ -1331,6 +1332,20 @@ select last_name, job_id, department_id, hire_date from employees order by hire_
 | Markle      | ST_CLERK   |            50 | 2000-03-08 |
 | Lee         | SA_REP     |            80 | 2000-02-23 |
 | Philtanker  | ST_CLERK   |            50 | 2000-02-06 |
+
+# order by 排序的字段名称可以使用别名，where 子句中不能使用列的别名
+select last_name, job_id, department_id, salary 月薪 from employees order by 月薪 desc;
++-------------+------------+---------------+----------+
+| last_name   | job_id     | department_id | 月薪     |
++-------------+------------+---------------+----------+
+| King        | AD_PRES    |            90 | 24000.00 |
+| Kochhar     | AD_VP      |            90 | 17000.00 |
+| De Haan     | AD_VP      |            90 | 17000.00 |
+| Russell     | SA_MAN     |            80 | 14000.00 |
+| Partners    | SA_MAN     |            80 | 13500.00 |
+| Hartstein   | MK_MAN     |            20 | 13000.00 |
+| Greenberg   | FI_MGR     |           100 | 12000.00 |
+| Errazuriz   | SA_MAN     |            80 | 12000.00 |
 ```
 
 ### 多列排序
@@ -1427,4 +1442,417 @@ select * from employees limit (pageNo - 1) * pageSize, pageSize;
 多表查询也称为关联查询，指两个或多个表一起完成查询操作;
 
 前提条件: 这些一起查询的表之间是有关系的 (一对一， 一对多)，它们之间一定是有关联字段，这个关联字段可能建立了外键，也可能没有建立外键。（例如：员工表和部门表通过 部门id 进行关联）
+
+
+## 笛卡尔积问题
+
+笛卡尔积是一个数学运算。假设有两个集合 x 和 y , 那么 x 和 y 的笛卡尔积就是 x 和 y 的所有可能组合，也就是第一个对象来自于 x，第二个对象来自于 y 的所有可能。组合的个数即为两个集合中元素个数的乘积数;
+
+笛卡尔积也成为 交叉连接 (`cross join`)，它的作用是可以将任意表进行连接，即使这两张表没有关联。
+
+在 mysql 中，以下场景会出现笛卡尔积:
+
+```sql
+# 员工表结构
+desc employees;
++----------------+-------------+------+-----+---------+-------+
+| Field          | Type        | Null | Key | Default | Extra |
++----------------+-------------+------+-----+---------+-------+
+| employee_id    | int         | NO   | PRI | 0       |       |
+| first_name     | varchar(20) | YES  |     | NULL    |       |
+| last_name      | varchar(25) | NO   |     | NULL    |       |
+| email          | varchar(25) | NO   | UNI | NULL    |       |
+| phone_number   | varchar(20) | YES  |     | NULL    |       |
+| hire_date      | date        | NO   |     | NULL    |       |
+| job_id         | varchar(10) | NO   | MUL | NULL    |       |
+| salary         | double(8,2) | YES  |     | NULL    |       |
+| commission_pct | double(2,2) | YES  |     | NULL    |       |
+| manager_id     | int         | YES  | MUL | NULL    |       |
+| department_id  | int         | YES  | MUL | NULL    |       |
++----------------+-------------+------+-----+---------+-------+
+11 rows in set (0.00 sec)
+
+# 部门表结构
+desc departments;
++-----------------+-------------+------+-----+---------+-------+
+| Field           | Type        | Null | Key | Default | Extra |
++-----------------+-------------+------+-----+---------+-------+
+| department_id   | int         | NO   | PRI | 0       |       |
+| department_name | varchar(30) | NO   |     | NULL    |       |
+| manager_id      | int         | YES  | MUL | NULL    |       |
+| location_id     | int         | YES  | MUL | NULL    |       |
++-----------------+-------------+------+-----+---------+-------+
+4 rows in set (0.00 sec)
+
+# 查询员工姓名和所在的部门
+
+select last_name, department_name from employees, departments;
+
+select last_name, department_name from employees cross join departments;
+
+select last_name, department_name from employees inner join departments;
+
+select last_name, department_name from employees join departments;
+```
+
+> 笛卡尔积问题案例
+
+```sql
+# 员工表数量
+select count(*) from employees;
++----------+
+| count(*) |
++----------+
+|      107 |
++----------+
+1 row in set (0.00 sec)
+
+# 部门表数量
+select count(*) from departments;
++----------+
+| count(*) |
++----------+
+|       27 |
++----------+
+1 row in set (0.00 sec)
+
+# 笛卡尔积数量
+select 107 * 27 from dual;
++----------+
+| 107 * 27 |
++----------+
+|     2889 |
++----------+
+1 row in set (0.00 sec)
+
+# 查询员工姓名及其部门名称，不使用关联字段
+select last_name, department_name from employees, departments;
++-------------+----------------------+
+| last_name   | department_name      |
++-------------+----------------------+
+| King        | Payroll              |
+| King        | Recruiting           |
+| King        | Retail Sales         |
+| King        | Government Sales     |
+| King        | IT Helpdesk          |
+| King        | NOC                  |
+| ...         | ....                 |  // 这里省略中间数据
+| Gietz       | Finance              |
+| Gietz       | Executive            |
+| Gietz       | Sales                |
+| Gietz       | Public Relations     |
+| Gietz       | IT                   |
+| Gietz       | Shipping             |
+| Gietz       | Human Resources      |
+| Gietz       | Purchasing           |
+| Gietz       | Marketing            |
+| Gietz       | Administration       |
++-------------+----------------------+
+2889 rows in set (0.00 sec)
+```
+
+
+## 笛卡尔积问题解决
+
+
+笛卡尔积的问题会在下面条件下产生:
+
+1. 省略多个表的连接 (或关联条件);
+2. 连接条件 (或关联条件) 无效;
+3. 所有表中的所有行互相连接；
+
+为了避免笛卡尔积，可以在 where 加入有效的连接条件，加入连接条件后的查询语法:
+
+```sql
+select table1.column, table2.column 
+from table1, table2
+where  table1.column1 = table2.column2;   # 连接条件
+
+# 案例
+select last_name, department_name from employees, departments where employees.department_id = departments.department_id;
++-------------+------------------+
+| last_name   | department_name  |
++-------------+------------------+
+| Whalen      | Administration   |
+| Hartstein   | Marketing        |
+| Fay         | Marketing        |
+| Raphaely    | Purchasing       |
+| Khoo        | Purchasing       |
+| ......      | .....            |  # 省略中间数据
+| Livingston  | Sales            |
+| Johnson     | Sales            |
+| King        | Executive        |
+| Kochhar     | Executive        |
+| De Haan     | Executive        |
+| Greenberg   | Finance          |
+| Faviet      | Finance          |
+| Chen        | Finance          |
+| Sciarra     | Finance          |
+| Urman       | Finance          |
+| Popp        | Finance          |
+| Higgins     | Accounting       |
+| Gietz       | Accounting       |
++-------------+------------------+
+106 rows in set (0.00 sec)
+```
+
+注意: 如果查询语句中出现了多个表中都存在的字段，则必须指明此字段所在的表;
+
+建议: 从 sql 优化的角度，建议多表查询时，每个字段都指明其所在的表;
+
+## 表的别名
+
+在 mysql 多表查询中，表的别名 `Alias` 用于简化表名，在 `SELECT` 和 `WHERE` 中使用表的别名，避免歧义并提高可读性，基本语法如下:
+
+```sql
+SELECT 别名.字段 
+FROM 表名 AS 别名   # AS 关键字可以省略
+JOIN 另一表名 AS 另一别名 ON 条件;
+```
+
+需要注意的是，如果我们使用了表的别名，在 查询字段、过滤条件中就只能使用别名进行代替，不能使用原有的表名，否则会报错，错误信息如下:
+
+```sql
+# 过滤条件中最后一个过滤条件使用了 departments.department_id
+select a.last_name, a.manager_id, b.department_name from employees as a cross join departments as b where a.department_id = b.department_id and a.manager_id = departments.manager_id;
+
+# 此时报错信息如下
+ERROR 1054 (42S22): Unknown column 'departments.manager_id' in 'where clause'
+```
+
+正确使用如下:
+
+```sql
+# 别名使用
+select a.last_name, a.manager_id, b.department_name     # 使用 表别名.字段名
+from employees as a     # 定义 employees 表的别名为 a，AS 关键字可以省略
+cross join departments as b   # 定义 departments 表的别名为 b
+where a.department_id = b.department_id and a.manager_id = b.manager_id;  # where 条件中 也需要使用 表别名.字段名 比较
+
++------------+------------+-----------------+
+| last_name  | manager_id | department_name |
++------------+------------+-----------------+
+| Fay        |        201 | Marketing       |
+| Khoo       |        114 | Purchasing      |
+| Baida      |        114 | Purchasing      |
+| Tobias     |        114 | Purchasing      |
+| Himuro     |        114 | Purchasing      |
+| Colmenares |        114 | Purchasing      |
+| Bissot     |        121 | Shipping        |
+| Atkinson   |        121 | Shipping        |
+| Marlow     |        121 | Shipping        |
+| Olson      |        121 | Shipping        |
+| Sarchand   |        121 | Shipping        |
+| Bull       |        121 | Shipping        |
+| Dellinger  |        121 | Shipping        |
+| Cabrio     |        121 | Shipping        |
+| Ernst      |        103 | IT              |
+| Austin     |        103 | IT              |
+| Pataballa  |        103 | IT              |
+| Lorentz    |        103 | IT              |
+| Tucker     |        145 | Sales           |
+| Bernstein  |        145 | Sales           |
+| Hall       |        145 | Sales           |
+| Olsen      |        145 | Sales           |
+| Cambrault  |        145 | Sales           |
+| Tuvault    |        145 | Sales           |
+| Kochhar    |        100 | Executive       |
+| De Haan    |        100 | Executive       |
+| Faviet     |        108 | Finance         |
+| Chen       |        108 | Finance         |
+| Sciarra    |        108 | Finance         |
+| Urman      |        108 | Finance         |
+| Popp       |        108 | Finance         |
+| Gietz      |        205 | Accounting      |
++------------+------------+-----------------+
+32 rows in set (0.00 sec)
+```
+
+> 如果有 `n` 个表实现多表查询，则至少需要 `n-1` 个连接条件。
+
+例如: 查询员工的 `employee_id`, `last_name`, `department_name`, `city`;
+
+```sql
+desc employees;
++----------------+-------------+------+-----+---------+-------+
+| Field          | Type        | Null | Key | Default | Extra |
++----------------+-------------+------+-----+---------+-------+
+| employee_id    | int         | NO   | PRI | 0       |       |
+| first_name     | varchar(20) | YES  |     | NULL    |       |
+| last_name      | varchar(25) | NO   |     | NULL    |       |
+| email          | varchar(25) | NO   | UNI | NULL    |       |
+| phone_number   | varchar(20) | YES  |     | NULL    |       |
+| hire_date      | date        | NO   |     | NULL    |       |
+| job_id         | varchar(10) | NO   | MUL | NULL    |       |
+| salary         | double(8,2) | YES  |     | NULL    |       |
+| commission_pct | double(2,2) | YES  |     | NULL    |       |
+| manager_id     | int         | YES  | MUL | NULL    |       |
+| department_id  | int         | YES  | MUL | NULL    |       |
++----------------+-------------+------+-----+---------+-------+
+11 rows in set (0.00 sec)
+
+desc departments;
++-----------------+-------------+------+-----+---------+-------+
+| Field           | Type        | Null | Key | Default | Extra |
++-----------------+-------------+------+-----+---------+-------+
+| department_id   | int         | NO   | PRI | 0       |       |
+| department_name | varchar(30) | NO   |     | NULL    |       |
+| manager_id      | int         | YES  | MUL | NULL    |       |
+| location_id     | int         | YES  | MUL | NULL    |       |
++-----------------+-------------+------+-----+---------+-------+
+4 rows in set (0.00 sec)
+
+desc locations;
++----------------+-------------+------+-----+---------+-------+
+| Field          | Type        | Null | Key | Default | Extra |
++----------------+-------------+------+-----+---------+-------+
+| location_id    | int         | NO   | PRI | 0       |       |
+| street_address | varchar(40) | YES  |     | NULL    |       |
+| postal_code    | varchar(12) | YES  |     | NULL    |       |
+| city           | varchar(30) | NO   |     | NULL    |       |
+| state_province | varchar(25) | YES  |     | NULL    |       |
+| country_id     | char(2)     | YES  | MUL | NULL    |       |
++----------------+-------------+------+-----+---------+-------+
+6 rows in set (0.00 sec)
+
+# 查询员工的 employee_id, last_name, department_name, city
+
+select emp.employee_id, emp.last_name, dept.department_name, loc.city from employees emp, departments dept, locations loc where emp.department_id = dept.department_id and dept.location_id = loc.location_id;
+
++-------------+-------------+------------------+---------------------+
+| employee_id | last_name   | department_name  | city                |
++-------------+-------------+------------------+---------------------+
+|         200 | Whalen      | Administration   | Seattle             |
+|         201 | Hartstein   | Marketing        | Toronto             |
+|         202 | Fay         | Marketing        | Toronto             |
+|         ... | ........    | ..........       | .......             |
+|         111 | Sciarra     | Finance          | Seattle             |
+|         112 | Urman       | Finance          | Seattle             |
+|         113 | Popp        | Finance          | Seattle             |
+|         205 | Higgins     | Accounting       | Seattle             |
+|         206 | Gietz       | Accounting       | Seattle             |
++-------------+-------------+------------------+---------------------+
+106 rows in set (0.00 sec)
+```
+
+## 多表查询分类
+
+多表查询可以从以下几种角度分类
+
+- 等值连接 vs 非等值连接
+- 自连接 vs 非自连接
+- 内连接 vs 外连接
+  
+
+### 等值连接 vs 非等值连接
+
+> 等值连接
+
+连接条件中使用 等号 (`=`) 比较两个表的字段值，特点如下:
+
+1. 最常见的连接类型;
+2. 用于匹配两张表中字段值完全相等的行;
+
+使用场景: 主键关联外键、ID匹配、分类关联等;
+
+```sql
+# 等值连接，单个等值条件
+select last_name, employees.manager_id, department_name 
+from employees, departments 
+where employees.department_id = departments.department_id;  # 等值条件
+
++-------------+------------+------------------+
+| last_name   | manager_id | department_name  |
++-------------+------------+------------------+
+| Whalen      |        101 | Administration   |
+| Hartstein   |        100 | Marketing        |
+| Fay         |        201 | Marketing        |
+| Raphaely    |        100 | Purchasing       |
+| ....        |        ... | ..........       |
+| Baida       |        114 | Purchasing       |
+| Sciarra     |        108 | Finance          |
+| Urman       |        108 | Finance          |
+| Popp        |        108 | Finance          |
+| Higgins     |        101 | Accounting       |
+| Gietz       |        205 | Accounting       |
++-------------+------------+------------------+
+106 rows in set (0.00 sec)
+
+# 等值连接，多个等值条件
+select last_name, employees.manager_id, department_name 
+from employees, departments 
+where employees.department_id = departments.department_id and employees.manager_id = departments.manager_id;  # 多个等值条件
++------------+------------+-----------------+
+| last_name  | manager_id | department_name |
++------------+------------+-----------------+
+| Fay        |        201 | Marketing       |
+| Khoo       |        114 | Purchasing      |
+| Baida      |        114 | Purchasing      |
+| Tobias     |        114 | Purchasing      |
+| Himuro     |        114 | Purchasing      |
+| Colmenares |        114 | Purchasing      |
+| Bissot     |        121 | Shipping        |
+| Atkinson   |        121 | Shipping        |
+| Marlow     |        121 | Shipping        |
+| Olson      |        121 | Shipping        |
+| Sarchand   |        121 | Shipping        |
+| Bull       |        121 | Shipping        |
+| Dellinger  |        121 | Shipping        |
+| Cabrio     |        121 | Shipping        |
+| Ernst      |        103 | IT              |
+| Austin     |        103 | IT              |
+| Pataballa  |        103 | IT              |
+| Lorentz    |        103 | IT              |
+| Tucker     |        145 | Sales           |
+| Bernstein  |        145 | Sales           |
+| Hall       |        145 | Sales           |
+| Olsen      |        145 | Sales           |
+| Cambrault  |        145 | Sales           |
+| Tuvault    |        145 | Sales           |
+| Kochhar    |        100 | Executive       |
+| De Haan    |        100 | Executive       |
+| Faviet     |        108 | Finance         |
+| Chen       |        108 | Finance         |
+| Sciarra    |        108 | Finance         |
+| Urman      |        108 | Finance         |
+| Popp       |        108 | Finance         |
+| Gietz      |        205 | Accounting      |
++------------+------------+-----------------+
+32 rows in set (0.00 sec)
+```
+
+> 非等值连接
+
+非等值连接是指在连接条件中使用 `非等号运算符` (例如: `>`, `<`, `BETWEEN AND`, `!=` 等)，特点如下:
+
+1. 用于匹配两个表中字段值满足某种范围或不等关系；
+2. 可能产生笛卡尔积的子集，须谨慎使用;
+
+使用场景: 区间匹配、等级划分、价格范围等;
+
+
+```sql
+select a.last_name, a.salary, b.grade_level from employees as a, job_grades as b where a.salary between b.lowest_sal and b.highest_sal;
+```
+
+
+| 特性 | 等值连接 | 非等值连接 |
+| -- | -- | -- |
+| 运算符 | `=` | `<`, `>`, `BETWEEN AND`, `!=` 等 |
+| 常见场景 | 主外键关联，ID匹配 | 区间匹配，等级划分，范围过滤 |
+| 性能 | 通常高效 (索引友好) | 可能低效 (需遍历更多行) |
+| 结果集 | 精确匹配的行 | 满足条件的行 (可能包含多对多的关系) |
+
+
+
+### 自连接 vs 非自连接
+
+
+| 特性 | 自连接 | 非自连接 |
+| -- | -- | -- |
+| 定义 | 同一张表与自身进行连接操作 | 不同表之间的连接操作 |
+| 别名必要性 | 必须为表定义别名以区分不同示例 | 无需强制别名 (除非表名一致) |
+| 数据关系 | 分析表中记录之间的内部关系 (如:层级、比较) | 分析不同表之间的关联关系 |
+| 典型场景 | 层级结构 (员工-经理)、同一实体比较 (同一商品不同时间价格) | 多表关联 (订单-用户、学生-课程) |
+| 性能影响 | 可能因表多次扫描导致性能问题。(需索引优化) | 通常更高效 (外键索引支持) |
 
