@@ -2082,3 +2082,59 @@ on emp.department_id = dept.department_id;
 ```
 
 
+## `UNION` 的使用
+
+合并查询结果 使用 `UNION` 关键字，可以给出多条 `SELECT` 语句，并将它们的结果组合成单个结果集。合并时，两个表对应的列数数据类型必须相同，并且相互对应。
+
+各个 `SELECT` 语句之间使用 `UNION` 或 `UNION ALL` 关键字分割，语法格式如下:
+
+```sql
+SELECT column1, ... FROM table1
+UNION
+SELECT column1, ... FROM table2
+```
+
+> `UNION` 操作符
+
+`UNION` 操作符返回两个查询结果集的并集，出去重复记录;
+
+![UNION](./imgs/mysql-select-union.png)
+
+> `UNION ALL` 操作符
+
+`UNION ALL` 操作符返回两个查询结果集的并集，对于两个结果集的重复部分，不去重;
+
+![UNION ALL](./imgs/mysql-select-union-all.png)
+
+
+注意: 执行 `UNION ALL` 语句时所需要的资源比 `UNION` 语句少。如果明确知道合并数据后的结果数据不存在重复数据，或者不需要去除重复数据，则尽量使用 `UNION ALL` 语句，以提高数据查询的效率;
+
+
+case1: 查询部门编号>90或邮箱包含a的员工信息
+```sql
+# 方式一
+select last_name, email, department_id from employees where department_id > 90 or email like '%a%';
+
+# 方式二
+select last_name, email, department_id from employees where department_id > 90
+UNION
+select last_name, email, department_id from employees where email like '%a%';
+
++------------+----------+---------------+
+| last_name  | email    | department_id |
++------------+----------+---------------+
+| Kochhar    | NKOCHHAR |            90 |
+| De Haan    | LDEHAAN  |            90 |
+| Hunold     | AHUNOLD  |            60 |
+| Austin     | DAUSTIN  |            60 |
+| .........  | ........ |            .. |
+| Mavris     | SMAVRIS  |            40 |
+| Baer       | HBAER    |            70 |
+| Higgins    | SHIGGINS |           110 |
+| Gietz      | WGIETZ   |           110 |
++------------+----------+---------------+
+67 rows in set (0.00 sec)
+```
+
+
+
