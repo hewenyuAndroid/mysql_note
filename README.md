@@ -1856,3 +1856,229 @@ select a.last_name, a.salary, b.grade_level from employees as a, job_grades as b
 | 典型场景 | 层级结构 (员工-经理)、同一实体比较 (同一商品不同时间价格) | 多表关联 (订单-用户、学生-课程) |
 | 性能影响 | 可能因表多次扫描导致性能问题。(需索引优化) | 通常更高效 (外键索引支持) |
 
+#### 自连接
+
+自连接时，table1 和 table2 本质上是同一张表，只是用取别名的方式虚拟成两张表以代表不同的意义。然后两个表再进行内连接、外连接等查询;
+
+```sql
+desc employees;
++----------------+-------------+------+-----+---------+-------+
+| Field          | Type        | Null | Key | Default | Extra |
++----------------+-------------+------+-----+---------+-------+
+| employee_id    | int         | NO   | PRI | 0       |       |
+| first_name     | varchar(20) | YES  |     | NULL    |       |
+| last_name      | varchar(25) | NO   |     | NULL    |       |
+| email          | varchar(25) | NO   | UNI | NULL    |       |
+| phone_number   | varchar(20) | YES  |     | NULL    |       |
+| hire_date      | date        | NO   |     | NULL    |       |
+| job_id         | varchar(10) | NO   | MUL | NULL    |       |
+| salary         | double(8,2) | YES  |     | NULL    |       |
+| commission_pct | double(2,2) | YES  |     | NULL    |       |
+| manager_id     | int         | YES  | MUL | NULL    |       |
+| department_id  | int         | YES  | MUL | NULL    |       |
++----------------+-------------+------+-----+---------+-------+
+11 rows in set (0.00 sec)
+
+# manager_id 也是一个 employee_id
+# 查询员工表，返回 emp works for manager 格式的数据
+# concat 用于拼接字符串
+# concat('a', 'b') 返回 ab
+# concat('a', NULL, 'b') 返回 ab
+
+ select concat(emp.last_name, ' works for ', manager.last_name) from employees as emp cross join employees as manager where emp.manager_id = manager.employee_id;
+
++---------------------------------------------------------+
+| concat(emp.last_name, ' works for ', manager.last_name) |
++---------------------------------------------------------+
+| Kochhar works for King                                  |
+| De Haan works for King                                  |
+| Hunold works for De Haan                                |
+| Ernst works for Hunold                                  |
+| Austin works for Hunold                                 |
+| Pataballa works for Hunold                              |
+| Lorentz works for Hunold                                |
+| Greenberg works for Kochhar                             |
+| Faviet works for Greenberg                              |
+
+
+# 查询出员工 last_name 为 Chen 的 manager 信息;
+ select emp.last_name as '员工姓名', manager.last_name as '主管姓名', manager.employee_id as '主管id' from employees as emp cross join employees as manager where emp.last_name = 'Chen' and emp.manager_id = manager.employee_id;
+ +----------+-----------+--------+
+| 员工姓名 | 主管姓名  | 主管id |
++----------+-----------+--------+
+| Chen     | Greenberg |    108 |
++----------+-----------+--------+
+```
+
+
+### 内连接 vs 外连接
+
+- 内连接: 合并具有同一列的两个以上的表的行，**结果集中不包含一个表与另一个表不匹配的行**;
+- 外连接: 两个表在连接过程中除了返回满足连接条件的行以外，**还返回了 左(或右) 表中不满足条件的行，这种连接称为 左(或右) 外连接**，没有匹配的行时，结果表中相应的列为空 (`NULL`);
+  - 左外连接: 连接条件中，左边的表也称为 主表，右边的表称为 从表;
+  - 右外连接: 连接条件中，右边的表也称为 主表，左边的表成为 从表;
+
+| 特性 | 内连接 `INNER JOIN` | 外连接 `OUTER JOIN` |
+| -- | -- | -- |
+| 结果集 | 仅返回两个表中匹配条件成立的行 | 返回匹配行 + 指定表中未匹配的行 (以 `NULL` 填充缺失值) |
+| 核心目的 | 获取两个表的交际数据 | 获取一张表 或 两张表的全集数据，保留未匹配的原始记录 |
+| `NULL` 值处理 | 不包含未匹配行，结果集中无 `NULL` | 未匹配部分用 `NULL` 填充 |
+| 常规类型 | 只有一种: `INNER JOIN` | 三种类型:</br> &nbsp; `LEFT JOIN` 左外连接</br> &nbsp; `RIGHT JOIN` 右外连接</br> &nbsp; `FULL JOIN` 全外连接 |
+
+
+#### SQL99语法实现多表查询
+
+使用 `JOIN .. ON ..` 子句创建连接的语法结构
+
+- 使用 `ON` 子句指定额外的连接条件。
+- 这个连接条件是与其他条件分开的。
+- `ON` 子句使语句具有更高的易读性。
+- 关键字 `JOIN`、`INNER JOIN`、`CROSS JOIN` 的含义是一样的，都表示内连接。
+- 在 mysql 中，如果使用 `INNER JOIN` 未指定 `ON` 子句时，会隐式的转成 `CROSS JOIN` 生成 笛卡尔积;
+
+```sql
+SELECT table1.column, table2.column, table3.column
+FROM table1
+  JOIN table2 ON table1 和 table2 的连接条件
+    JOIN table3 ON table2 和 table3 的连接条件
+```
+
+#### 内连接 `INNER JOIN` 实现
+
+语法
+
+```sql
+SELECT 字段列表
+FROM A表 INNER JOIN B表
+ON 关联条件
+WHERE 查询条件;
+```
+
+查询sql
+```sql
+select emp.employee_id, emp.last_name, dept.department_id, dept.department_name, loc.location_id, loc.city 
+from employees as emp 
+inner join departments as dept on emp.department_id = dept.department_id inner join locations as loc on dept.location_id = loc.location_id 
+where dept.department_id < 50;
+
++-------------+------------+---------------+-----------------+-------------+---------+
+| employee_id | last_name  | department_id | department_name | location_id | city    |
++-------------+------------+---------------+-----------------+-------------+---------+
+|         200 | Whalen     |            10 | Administration  |        1700 | Seattle |
+|         201 | Hartstein  |            20 | Marketing       |        1800 | Toronto |
+|         202 | Fay        |            20 | Marketing       |        1800 | Toronto |
+|         114 | Raphaely   |            30 | Purchasing      |        1700 | Seattle |
+|         115 | Khoo       |            30 | Purchasing      |        1700 | Seattle |
+|         116 | Baida      |            30 | Purchasing      |        1700 | Seattle |
+|         117 | Tobias     |            30 | Purchasing      |        1700 | Seattle |
+|         118 | Himuro     |            30 | Purchasing      |        1700 | Seattle |
+|         119 | Colmenares |            30 | Purchasing      |        1700 | Seattle |
+|         203 | Mavris     |            40 | Human Resources |        2400 | London  |
++-------------+------------+---------------+-----------------+-------------+---------+
+10 rows in set (0.01 sec)
+```
+
+#### 外连接 `OUTER JOIN` 实现
+
+##### 左外连接 `LEFT JOIN`
+
+保留左表所有行，右表未匹配的行用 `NULL` 填充。
+
+语法
+
+```sql
+SELECT 字段列表
+FROM A表
+LEFT JOIN B表
+ON 关联条件
+WHERE 查询条件;
+```
+
+查询sql
+```sql
+select emp.last_name, dept.department_name 
+from employees as emp 
+left join departments as dept 
+on emp.department_id = dept.department_id;
+
++-------------+------------------+
+| last_name   | department_name  |
++-------------+------------------+
+| King        | Executive        |
+| Kochhar     | Executive        |
+| .......     | .........        |
+| Grant       | NULL             |  # 从表没有匹配的行数据时，对应列的数据使用 NULL 填充
+| .......     | ..........       |
+| Higgins     | Accounting       |
+| Gietz       | Accounting       |
++-------------+------------------+
+107 rows in set (0.00 sec)          # 左连接时，返回主表的所有数据
+```
+
+
+##### 右外连接 `RIGHT JOIN`
+
+保留右表所有行，左表未匹配的行用 NULL 填充
+
+右外连接的本质，是将 右表(主表) 的每一行与 左表(从表) 的所有匹配行组合，若从表有多行数据匹配时，主表的数据会重复出现(每次对应一个从表的数据)；
+
+注意：右外连接时，右表(主表) 的数据有可能重复
+
+语法
+
+```sql
+SELECT 字段列表
+FROM A表 RIGHT JOIN B表
+ON 关联条件
+WHERE 查询条件;
+```
+
+查询sql
+```sql
+select count(*) from departments;
++----------+
+| count(*) |
++----------+
+|       27 |
++----------+
+1 row in set (0.00 sec)
+
+select count(*) from employees;
++----------+
+| count(*) |
++----------+
+|      107 |
++----------+
+1 row in set (0.00 sec)
+
+
+select emp.last_name, dept.department_name 
+from employees as emp 
+right join departments as dept 
+on emp.department_id = dept.department_id;
++-------------+----------------------+
+| last_name   | department_name      |
++-------------+----------------------+
+| Whalen      | Administration       |
+| Hartstein   | Marketing            |
+| Fay         | Marketing            |   # 右外连接时，右表的数据会匹配出左表中每一个匹配的行数据，因此右表的数据有肯能会重复出现
+| Raphaely    | Purchasing           |
+| Khoo        | Purchasing           |
+| Baida       | Purchasing           |
+| Tobias      | Purchasing           |
+| Himuro      | Purchasing           |
+| Colmenares  | Purchasing           |
+| Mavris      | Human Resources      |
+| Weiss       | Shipping             |
+| Fripp       | Shipping             |
+| ........    | ........             |
+| NULL        | IT Helpdesk          |    # 右表中的数据没有匹配的坐标数据时，坐标数据使用 null 值填充
+| NULL        | Government Sales     |
+| NULL        | Retail Sales         |
+| NULL        | Recruiting           |
+| NULL        | Payroll              |
++-------------+----------------------+
+122 rows in set (0.00 sec)
+```
+
+
