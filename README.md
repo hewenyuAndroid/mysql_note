@@ -2136,5 +2136,184 @@ select last_name, email, department_id from employees where email like '%a%';
 67 rows in set (0.00 sec)
 ```
 
+## 7种 `SQL JOIN` 的实现
+
+![sql join](./imgs/mysql-sql-join.png)
+
+
+> 内连接，取交集  A ∩ B
+
+```sql
+# 取两张表的交集
+select emp.last_name, dept.department_name from employees as emp inner join departments as dept on emp.department_id = dept.department_id;
+
++-------------+------------------+
+| last_name   | department_name  |
++-------------+------------------+
+| Whalen      | Administration   |
+| Hartstein   | Marketing        |
+| Fay         | Marketing        |
+| Raphaely    | Purchasing       |
+| Khoo        | Purchasing       |
+| ......      | .......          |
+| Chen        | Finance          |
+| Sciarra     | Finance          |
+| Urman       | Finance          |
+| Popp        | Finance          |
+| Higgins     | Accounting       |
+| Gietz       | Accounting       |
++-------------+------------------+
+106 rows in set (0.00 sec)            # 不包含 emp 和 dept 中为 NULL 的数据
+```
+
+> 左外连接，取左侧表的所有数据
+
+```sql
+# 取左表的所有数据
+select emp.last_name, dept.department_name from employees as emp left join departments as dept on emp.department_id = dept.department_id;
+
++-------------+------------------+
+| last_name   | department_name  |
++-------------+------------------+
+| King        | Executive        |
+| Kochhar     | Executive        |
+| ......      | ...............  |
+| Baer        | Public Relations |
+| Higgins     | Accounting       |
+| Gietz       | Accounting       |
++-------------+------------------+
+107 rows in set (0.00 sec)          # emp 中所有的数据
+```
+
+> 右外连接，取右表的所有数据
+
+```sql
+# 右外连接，取右表的所有数据
+select emp.last_name, dept.department_name from employees as emp right join departments as dept on emp.department_id = dept.department_id;
+
++-------------+----------------------+
+| last_name   | department_name      |
++-------------+----------------------+
+| Whalen      | Administration       |
+| Hartstein   | Marketing            |
+| Fay         | Marketing            |
+| Raphaely    | Purchasing           |
+| Khoo        | Purchasing           |
+| Baida       | Purchasing           |
+| Tobias      | Purchasing           |
+| Himuro      | Purchasing           |
+| ....        | ...                  |
+| NULL        | IT Helpdesk          |
+| NULL        | Government Sales     |
+| NULL        | Retail Sales         |
+| NULL        | Recruiting           |
+| NULL        | Payroll              |
++-------------+----------------------+
+122 rows in set (0.00 sec)              # dept 中所有的数据 + 能够匹配上的所有 emp 数据
+```
+
+> 取A表中不包含 AB表交集的部分 A - ( A ∩ B)
+
+```sql
+select emp.last_name, dept.department_name from employees as emp left join departments as dept on emp.department_id = dept.department_id where dept.department_id is null;
+
++-----------+-----------------+
+| last_name | department_name |
++-----------+-----------------+
+| Grant     | NULL            |
++-----------+-----------------+
+1 row in set (0.00 sec)           # emp 中为 null 的数据
+```
+
+> 取B表中不包含 AB表交集的部分 B - ( A ∩ B)
+
+```sql
+select emp.last_name, dept.department_name from employees as emp right join departments as dept on emp.department_id = dept.department_id where emp.department_id is null;
+
++-----------+----------------------+
+| last_name | department_name      |
++-----------+----------------------+
+| NULL      | Treasury             |
+| NULL      | Corporate Tax        |
+| NULL      | Control And Credit   |
+| NULL      | Shareholder Services |
+| NULL      | Benefits             |
+| NULL      | Manufacturing        |
+| NULL      | Construction         |
+| NULL      | Contracting          |
+| NULL      | Operations           |
+| NULL      | IT Support           |
+| NULL      | NOC                  |
+| NULL      | IT Helpdesk          |
+| NULL      | Government Sales     |
+| NULL      | Retail Sales         |
+| NULL      | Recruiting           |
+| NULL      | Payroll              |
++-----------+----------------------+
+16 rows in set (0.00 sec)
+```
+
+> 满外连接 A U B
+
+
+```sql
+select emp.last_name, dept.department_name from employees as emp left join departments as dept on emp.department_id = dept.department_id where emp.department_id is null
+union all
+select emp.last_name, dept.department_name from employees as emp right join departments as dept on emp.department_id = dept.department_id;
+
++-------------+----------------------+
+| last_name   | department_name      |
++-------------+----------------------+
+| Grant       | NULL                 |
+| Whalen      | Administration       |
+| Hartstein   | Marketing            |
+| Fay         | Marketing            |
+| Raphaely    | Purchasing           |
+| ....        | ..........           |
+| NULL        | NOC                  |
+| NULL        | IT Helpdesk          |
+| NULL        | Government Sales     |
+| NULL        | Retail Sales         |
+| NULL        | Recruiting           |
+| NULL        | Payroll              |
++-------------+----------------------+
+123 rows in set (0.00 sec)
+```
+
+> 取 AB 交集之外的数据
+
+```sql
+select emp.last_name, dept.department_name from employees as emp left join departments as dept on emp.department_id = dept.department_id where dept.department_id is null
+union all
+select emp.last_name, dept.department_name from employees as emp right join departments as dept on emp.department_id = dept.department_id where emp.department_id is null;
+
++-----------+----------------------+
+| last_name | department_name      |
++-----------+----------------------+
+| Grant     | NULL                 |
+| NULL      | Treasury             |
+| NULL      | Corporate Tax        |
+| NULL      | Control And Credit   |
+| NULL      | Shareholder Services |
+| NULL      | Benefits             |
+| NULL      | Manufacturing        |
+| NULL      | Construction         |
+| NULL      | Contracting          |
+| NULL      | Operations           |
+| NULL      | IT Support           |
+| NULL      | NOC                  |
+| NULL      | IT Helpdesk          |
+| NULL      | Government Sales     |
+| NULL      | Retail Sales         |
+| NULL      | Recruiting           |
+| NULL      | Payroll              |
++-----------+----------------------+
+17 rows in set (0.00 sec)
+```
+
+
+
+
+
 
 
