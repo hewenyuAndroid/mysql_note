@@ -2314,6 +2314,14 @@ select emp.last_name, dept.department_name from employees as emp right join depa
 
 
 
+# 单行函数
+
+## mysql 的内置函数及分类
+
+mysql 提供了丰富的内置函数，这些函数使得数据维护与管理更加方便，能够更好的提供数据的分析与统计功能。
+
+mysql 提供的内置函数从 实现的功能角度 可分为 数值函数、字符串函数、日期和时间函数、流程控制函数、加密与解密函数、获取mysql信息函数、聚合函数等。这里可以将这些丰富的内置函数再分为两类: 单行函数、聚合函数(或分组函数);
+
 
 
 
