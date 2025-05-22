@@ -2647,6 +2647,206 @@ from employees;
 - `MIN()`
 - `COUNT()`
 
+聚合函数不能嵌套调用，例如不能出现 `AVG(SUM(字段名称))` 的调用方式。
+
+## 计算平均值，求和，计数
+
+```sql
+select avg(salary), sum(salary), count(salary), sum(salary) / count(salary) from employees;
+
++-------------+-------------+---------------+-----------------------------+
+| avg(salary) | sum(salary) | count(salary) | sum(salary) / count(salary) |
++-------------+-------------+---------------+-----------------------------+
+| 6461.682243 |   691400.00 |           107 |                 6461.682243 |
++-------------+-------------+---------------+-----------------------------+
+1 row in set (0.00 sec)
+```
+
+> count 函数
+
+- `count(*)` 返回表中记录总数，适用于任意数据类型。
+- `count(expr)` 返回 `expr` 不为空的记录总数。
+
+
+```sql
+select count(*), count(salary), count(commission_pct) from employees;
+
++----------+---------------+-----------------------+
+| count(*) | count(salary) | count(commission_pct) |
++----------+---------------+-----------------------+
+|      107 |           107 |                    35 |
++----------+---------------+-----------------------+
+1 row in set (0.00 sec)
+```
+
+> 问题: 用 `count(*)`, `count(1)`, `count(字段名)` 哪个更好?
+
+对于 `MyISAM` 引擎的表是没有区别的，这种引擎内部有一个计数器在维护着行数。
+对于 `InnoDB` 引擎的表，用 `count(*)`, `count(1)` 直接读取行数，复杂度是 `O(n)`，因为 `InnoDB` 真的要去数一遍，但好于具体的 `count(字段名)`。
+
+> 问题: 能否使用 `count(字段名)` 替换 `count(*)`
+
+不能使用 `count(字段名)` 替换 `count(*)`，`count(*)` 是 sql92 定义的标准统计函数的语法，跟数据库无关，跟 `NULL` 和 非 `NULL` 无关；
+
+`count(*)` 会统计值为 `NULL` 的行；
+`count(字段名)` 不会统计此列为 `NULL` 值的行；
+
+## 计算最大值/最小值
+
+```sql
+select max(salary), min(salary) from employees;
+
++-------------+-------------+
+| max(salary) | min(salary) |
++-------------+-------------+
+|    24000.00 |     2100.00 |
++-------------+-------------+
+1 row in set (0.00 sec)
+```
+
+
+## `GROUP BY` 分组
+
+使用 `GROUP BY` 子句可以将表中的数据分成若干组。
+
+```sql
+select department_id, avg(salary) from employees group by department_id;
+
+# sql 执行顺序分析
+# 1. 执行 from 子句，从 employees 表中查询出所有数据;
+# 2. 执行 group by 子句，根据 department_id 字段将数据分组，相同的 department_id 分为一个组;
+# 3. 聚合计算 avg(salary)，对每个分组中的 salary 字段使用 avg() 函数计算平均值，这里得到的是每个分组的 salary 的平均值;
+# 4. 执行 select 子句，最终选择 department_id 和 对应分组的平均工资作为结果返回;
+
++---------------+--------------+
+| department_id | avg(salary)  |
++---------------+--------------+
+|          NULL |  7000.000000 |
+|            10 |  4400.000000 |
+|            20 |  9500.000000 |
+|            30 |  4150.000000 |
+|            40 |  6500.000000 |
+|            50 |  3475.555556 |
+|            60 |  5760.000000 |
+|            70 | 10000.000000 |
+|            80 |  8955.882353 |
+|            90 | 19333.333333 |
+|           100 |  8600.000000 |
+|           110 | 10150.000000 |
++---------------+--------------+
+12 rows in set (0.00 sec)
+```
+
+## `HAVING`
+
+`HAVING` 是 sql 中用于过滤 分组 (`GROUP BY`) 后的结果的子句，类似于 `WHERE`，但核心区别在于:
+
+- `WHERE`: 在分组前过滤原始数据行;
+- `HAVING`: 在分组后过滤聚合后的分组结果;
+
+```sql
+# 过滤出平均工资超过 10000 的部门;
+select department_id, avg(salary) from employees group by department_id having avg(salary) > 10000;
+
++---------------+--------------+
+| department_id | avg(salary)  |
++---------------+--------------+
+|            90 | 19333.333333 |
+|           110 | 10150.000000 |
++---------------+--------------+
+2 rows in set (0.00 sec)
+```
+
+
+# `SELECT` 的执行过程
+
+## `SELECT` 查询的结构
+
+```sql
+#方式1：
+SELECT ...,....,...
+ FROM ...,...,....
+ WHERE 多表的连接条件
+AND 不包含组函数的过滤条件
+GROUP BY ...,...
+ HAVING 包含组函数的过滤条件
+ORDER BY ... ASC/DESC
+ LIMIT ...,...
+ #方式2：
+SELECT ...,....,...
+ FROM ... JOIN ... 
+ON 多表的连接条件
+JOIN ...
+ ON ...
+ WHERE 不包含组函数的过滤条件
+AND/OR 不包含组函数的过滤条件
+GROUP BY ...,...
+ HAVING 包含组函数的过滤条件
+ORDER BY ... ASC/DESC
+ LIMIT ...,...
+ #其中：
+#（1）from：从哪些表中筛选
+#（2）on：关联多表查询时，去除笛卡尔积
+#（3）where：从表中筛选的条件
+#（4）group by：分组依据
+#（5）having：在统计结果中再次筛选
+#（6）order by：排序
+#（7）limit：分页
+```
+
+## `SELECT` 执行顺序
+
+1. 关键字的顺序是不能颠倒的
+
+```sql
+select ... from ... where ... group by ... having ... order by ... limit ...
+```
+
+2. select 语句的执行顺序
+
+```sql
+from -> where -> group by -> having -> select 字段 -> distinct -> order by -> limit
+```
+
+select 语句执行这些步骤的时候，每个步骤都会产生一个虚拟表，然后将这个虚拟表传入下一个步骤作为输入。
+
+需要注意的是，这些步骤隐藏在 sql 执行的过程中，对于我们来说是不可见的。
+
+例如下面的sql执行顺序拆分
+
+```sql
+SELECT DISTINCT player_id, player_name, count(*) as num # 顺序 5
+ FROM player JOIN team ON player.team_id = team.team_id # 顺序 1
+ WHERE height > 1.80 # 顺序 2
+ GROUP BY player.team_id # 顺序 3
+ HAVING num > 2 # 顺序 4
+ ORDER BY num DESC # 顺序 6
+ LIMIT 2 # 顺序 7
+```
+
+## `SQL` 执行的过程
+
+`SELECT` 是先执行 `FROM` 这一步，在这个阶段，如果是多张表联查，还会经历下面几个步骤:
+
+1. 首先通过 `CROSS JOIN` 求笛卡尔积，相当于是得到虚拟表 `vt 1-1 (virtual table)`;
+2. 通过 `ON` 进行筛选，在虚拟表 `1-1` 的基础上进行筛选，得到虚拟表 `vt 1-2`;
+3. 添加外部行，如果我们使用的是左连接、右连接或全连接，就会涉及到外部行，也就是在虚拟表 `vt 1-2` 的基础上增加外部行，得到虚拟表 `vt 1-3`;
+
+如果是两张以上的表，还会重复上面的步骤，直到所有的表处理完为止，这个过程得到的是 原始数据。
+
+当我们拿到了查询数据表的原始数据，也就是最终的虚拟表 `vt1`，就可以在此基础上在进行 `WHERE 阶段`，在这个阶段中，会根据 `vt1` 表的结果进行筛选过滤得到虚拟表 `vt2`;
+
+然后进入第三步和第四步，也就是 `GROUP BY` 和 `HAVING` 阶段，在这个阶段中，实际上实在虚拟表 `vt2` 的基础上进行分组和分组过滤，得到中间的虚拟表 `vt3` 和 `vt4`。
+
+在完成上述的条件筛选部分后，就可以筛选表中提取的字段，也就是进入到 `SELECT` 和 `DISTINCT` 阶段。 `SELECT` 阶段会提取想要的字段，然后再 `DISTINCT` 阶段过滤掉重复的行，分别得到中间的虚拟表 `vt5-1` 和 `vt5-2`。
+
+在提取到了想要的字段数据后，就可以按照指定的字段进行排序，也就是 `ORDER BY` 阶段，得到虚拟表 `vt6`;
+
+最后在 `vt6` 的基础上，去除指定行的记录，也就是 `LIMIT` 阶段，得到最终过的结果，对应的是虚拟表 `vt7`;
+
+当然，如果 `SELECT` 语句没有包含对应的关键字时，相应的阶段就会省略。
+
+
 
 
 
