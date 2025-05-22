@@ -2848,6 +2848,112 @@ SELECT DISTINCT player_id, player_name, count(*) as num # 顺序 5
 
 
 
+# 子查询
+
+子查询是指一个查询语句嵌套在另一个查询语句内部的查询，这个特性从 `mysql 4.1` 开始引入;
+
+sql 中子查询的使用极大的增强了 `SELECT` 查询的能力，因为很多时候查询需要从结果集中获取数据，或者需要从一个表中先计算得出一个数据的结果，然后与这个数据结果进行比较。
+
+> 查询出工资比 `Abel` 高的员工
+
+```sql
+# 方式一
+select salary from employees where last_name = 'Abel';
++----------+
+| salary   |
++----------+
+| 11000.00 |
++----------+
+1 row in set (0.00 sec)
+
+select last_name, salary from employees where salary > 11000;
++-----------+----------+
+| last_name | salary   |
++-----------+----------+
+| King      | 24000.00 |
+| Kochhar   | 17000.00 |
+| De Haan   | 17000.00 |
+| Greenberg | 12000.00 |
+| Russell   | 14000.00 |
+| Partners  | 13500.00 |
+| Errazuriz | 12000.00 |
+| Ozer      | 11500.00 |
+| Hartstein | 13000.00 |
+| Higgins   | 12000.00 |
++-----------+----------+
+10 rows in set (0.00 sec)
+
+
+# 方式二，自连接
+select a.last_name, a.salary from employees as a join employees as b where b.last_name = 'Abel' and a.salary > b.salary;
++-----------+----------+
+| last_name | salary   |
++-----------+----------+
+| King      | 24000.00 |
+| Kochhar   | 17000.00 |
+| De Haan   | 17000.00 |
+| Greenberg | 12000.00 |
+| Russell   | 14000.00 |
+| Partners  | 13500.00 |
+| Errazuriz | 12000.00 |
+| Ozer      | 11500.00 |
+| Hartstein | 13000.00 |
+| Higgins   | 12000.00 |
++-----------+----------+
+10 rows in set (0.00 sec)
+
+
+# 方式三，子查询
+select last_name, salary from employees where salary > (select salary from employees where last_name = 'Abel');
+
+select last_name, salary 
+from employees 
+where salary > (select salary from employees where last_name = 'Abel');
+
++-----------+----------+
+| last_name | salary   |
++-----------+----------+
+| King      | 24000.00 |
+| Kochhar   | 17000.00 |
+| De Haan   | 17000.00 |
+| Greenberg | 12000.00 |
+| Russell   | 14000.00 |
+| Partners  | 13500.00 |
+| Errazuriz | 12000.00 |
+| Ozer      | 11500.00 |
+| Hartstein | 13000.00 |
+| Higgins   | 12000.00 |
++-----------+----------+
+10 rows in set (0.00 sec)
+```
+
+
+## 子查询的基本使用
+
+子查询的基本语法结构
+
+```sql
+SELECT select_list
+FROM table
+WHERE expr operator
+  (SELECT select_list FROM table);
+```
+
+- 子查询在主查询之前一次执行完成；
+- 子查询的结果被主查询使用；
+
+注意：
+
+- 子查询需要被包含在括号内;
+- 将子查询放在比较条件的右侧；
+- 单行操作符对应单行子查询，多行操作符对应多行子查询；
+
+
+## 子查询的分类
+
+- 单行子查询、多行子查询：按照子查询的返回结果返回一条还是多条记录
+- 相关子查询、不相关子查询：按照子查询是否被执行多次，执行一次称为不相关子查询。
+
 
 
 
