@@ -2955,11 +2955,344 @@ WHERE expr operator
 - 相关子查询、不相关子查询：按照子查询是否被执行多次，执行一次称为不相关子查询。
 
 
+### 单行子查询
+
+单行子查询比较操作符
+
+| 操作符 | 含义 |
+| -- | -- |
+| `=` | equal to |
+| `>` | greater than |
+| `>=` | greater than or equal to |
+| `<` | less than |
+| `<=` | less than or equal to |
+| `<>` | not equal to |
+
+> 查询工资大于 149 号员工工资的员工信息
+
+```sql
+select last_name, salary from employees where salary > (select salary from employees where employee_id = 149);
+
++-----------+----------+
+| last_name | salary   |
++-----------+----------+
+| King      | 24000.00 |
+| Kochhar   | 17000.00 |
+| De Haan   | 17000.00 |
+| Greenberg | 12000.00 |
+| Raphaely  | 11000.00 |
+| Russell   | 14000.00 |
+| Partners  | 13500.00 |
+| Errazuriz | 12000.00 |
+| Cambrault | 11000.00 |
+| Ozer      | 11500.00 |
+| Abel      | 11000.00 |
+| Hartstein | 13000.00 |
+| Higgins   | 12000.00 |
++-----------+----------+
+13 rows in set (0.01 sec)
+```
+
+> 返回job_id与141号员工相同，salary比143号员工多的员工姓名，job_id和工资
+
+```sql
+select last_name, job_id, salary from employees where job_id = (select job_id from employees where employee_id = 141) and salary > (select salary from employees where employee_id = 143);
++-------------+----------+---------+
+| last_name   | job_id   | salary  |
++-------------+----------+---------+
+| Nayer       | ST_CLERK | 3200.00 |
+| Mikkilineni | ST_CLERK | 2700.00 |
+| Bissot      | ST_CLERK | 3300.00 |
+| Atkinson    | ST_CLERK | 2800.00 |
+| Mallin      | ST_CLERK | 3300.00 |
+| Rogers      | ST_CLERK | 2900.00 |
+| Ladwig      | ST_CLERK | 3600.00 |
+| Stiles      | ST_CLERK | 3200.00 |
+| Seo         | ST_CLERK | 2700.00 |
+| Rajs        | ST_CLERK | 3500.00 |
+| Davies      | ST_CLERK | 3100.00 |
++-------------+----------+---------+
+11 rows in set (0.00 sec)
+```
+
+> 返回公司工资最少的员工的last_name,job_id和salary
+
+```sql
+select last_name, salary, job_id from employees where salary = (select min(salary) from employees);
+
++-----------+---------+----------+
+| last_name | salary  | job_id   |
++-----------+---------+----------+
+| Olson     | 2100.00 | ST_CLERK |
++-----------+---------+----------+
+1 row in set (0.00 sec)
+```
+
+> 查询与141号或174号员工的manager_id和department_id相同的其他员工的employee_id，manager_id，department_id
 
 
+```sql
+select last_name, employee_id, department_id, manager_id
+ from employees 
+ where 
+ department_id in (select department_id from employees where employee_id in (141, 174))
+  and manager_id in (select manager_id from employees where employee_id in (141, 174))
+  and employee_id not in (141, 174);
+
++------------+-------------+---------------+------------+
+| last_name  | employee_id | department_id | manager_id |
++------------+-------------+---------------+------------+
+| Davies     |         142 |            50 |        124 |
+| Matos      |         143 |            50 |        124 |
+| Vargas     |         144 |            50 |        124 |
+| Walsh      |         196 |            50 |        124 |
+| Feeney     |         197 |            50 |        124 |
+| OConnell   |         198 |            50 |        124 |
+| Grant      |         199 |            50 |        124 |
+| Hutton     |         175 |            80 |        149 |
+| Taylor     |         176 |            80 |        149 |
+| Livingston |         177 |            80 |        149 |
+| Johnson    |         179 |            80 |        149 |
++------------+-------------+---------------+------------+
+11 rows in set (0.00 sec)
+```
+
+### having 中的子查询
+
+- 首先执行子查询
+- 向主查询中的 having 子句返回结果
+
+> 查询最低工资大于50号部门最低工资的部门id和其最低工资
+
+```sql
+select department_id, min(salary) 
+from employees 
+group by department_id 
+having min(salary) > (select min(salary) from employees group by department_id having department_id = 50);
+
++---------------+-------------+
+| department_id | min(salary) |
++---------------+-------------+
+|          NULL |     7000.00 |
+|            10 |     4400.00 |
+|            20 |     6000.00 |
+|            30 |     2500.00 |
+|            40 |     6500.00 |
+|            60 |     4200.00 |
+|            70 |    10000.00 |
+|            80 |     6100.00 |
+|            90 |    17000.00 |
+|           100 |     6900.00 |
+|           110 |     8300.00 |
++---------------+-------------+
+11 rows in set (0.00 sec)
+```
+
+## 子查询中的空值问题
+
+```sql
+SELECT last_name, job_id
+ FROM   employees
+ WHERE  job_id = (SELECT job_id FROM  employees WHERE  last_name = 'Haas');
+
+# 子查询不返回任何行
+```
 
 
+## 多行子查询
 
+| 操作符 | 含义 |
+| -- | -- |
+| `IN` | 等于列表中的任意一个 |
+| `ANY` | 需要和单行比较操作符一起使用，和子查询返回的某一个值比较 |
+| `ALL` | 需要和单行比较操作符一起使用，和子查询返回的所有值比较 |
+| `SOME` | 实际上是 `ANY` 的别名，作用相同 |
+
+
+> 返回其它job_id中比job_id为‘IT_PROG’部门任一工资低的员工的员工号、姓名、job_id 以及salary
+
+```sql
+select employee_id, last_name, job_id, salary from employees where salary < any (select salary from employees where job_id = 'IT_PROG') and job_id <> 'IT_PROG';
+
++-------------+-------------+------------+---------+
+| employee_id | last_name   | job_id     | salary  |
++-------------+-------------+------------+---------+
+|         110 | Chen        | FI_ACCOUNT | 8200.00 |
+|         111 | Sciarra     | FI_ACCOUNT | 7700.00 |
+|         112 | Urman       | FI_ACCOUNT | 7800.00 |
+|         113 | Popp        | FI_ACCOUNT | 6900.00 |
+|         ... | ....        | ........   | ....... |
+|         203 | Mavris      | HR_REP     | 6500.00 |
+|         206 | Gietz       | AC_ACCOUNT | 8300.00 |
++-------------+-------------+------------+---------+
+76 rows in set (0.00 sec)
+```
+
+> 返回其它job_id中比job_id为‘IT_PROG’部门所有工资都低的员工的员工号、姓名、job_id以及salary
+
+```sql
+select job_id, min(salary) from employees where job_id = 'IT_PROG';
++---------+-------------+
+| job_id  | min(salary) |
++---------+-------------+
+| IT_PROG |     4200.00 |
++---------+-------------+
+1 row in set (0.00 sec)
+
+
+select employee_id, last_name, job_id, salary from employees where salary < all (select salary from employees where job_id = 'IT_PROG') and job_id <> 'IT_PROG';
++-------------+-------------+----------+---------+
+| employee_id | last_name   | job_id   | salary  |
++-------------+-------------+----------+---------+
+|         115 | Khoo        | PU_CLERK | 3100.00 |
+|         116 | Baida       | PU_CLERK | 2900.00 |
+|         117 | Tobias      | PU_CLERK | 2800.00 |
+|         118 | Himuro      | PU_CLERK | 2600.00 |
+|         119 | Colmenares  | PU_CLERK | 2500.00 |
+|         125 | Nayer       | ST_CLERK | 3200.00 |
+|         126 | Mikkilineni | ST_CLERK | 2700.00 |
+|         127 | Landry      | ST_CLERK | 2400.00 |
+|         128 | Markle      | ST_CLERK | 2200.00 |
+|         129 | Bissot      | ST_CLERK | 3300.00 |
+|         130 | Atkinson    | ST_CLERK | 2800.00 |
+|         131 | Marlow      | ST_CLERK | 2500.00 |
+|         132 | Olson       | ST_CLERK | 2100.00 |
+|         133 | Mallin      | ST_CLERK | 3300.00 |
+|         134 | Rogers      | ST_CLERK | 2900.00 |
+|         135 | Gee         | ST_CLERK | 2400.00 |
+|         136 | Philtanker  | ST_CLERK | 2200.00 |
+|         137 | Ladwig      | ST_CLERK | 3600.00 |
+|         138 | Stiles      | ST_CLERK | 3200.00 |
+|         139 | Seo         | ST_CLERK | 2700.00 |
+|         140 | Patel       | ST_CLERK | 2500.00 |
+|         141 | Rajs        | ST_CLERK | 3500.00 |
+|         142 | Davies      | ST_CLERK | 3100.00 |
+|         143 | Matos       | ST_CLERK | 2600.00 |
+|         144 | Vargas      | ST_CLERK | 2500.00 |
+|         180 | Taylor      | SH_CLERK | 3200.00 |
+|         181 | Fleaur      | SH_CLERK | 3100.00 |
+|         182 | Sullivan    | SH_CLERK | 2500.00 |
+|         183 | Geoni       | SH_CLERK | 2800.00 |
+|         185 | Bull        | SH_CLERK | 4100.00 |
+|         186 | Dellinger   | SH_CLERK | 3400.00 |
+|         187 | Cabrio      | SH_CLERK | 3000.00 |
+|         188 | Chung       | SH_CLERK | 3800.00 |
+|         189 | Dilly       | SH_CLERK | 3600.00 |
+|         190 | Gates       | SH_CLERK | 2900.00 |
+|         191 | Perkins     | SH_CLERK | 2500.00 |
+|         192 | Bell        | SH_CLERK | 4000.00 |
+|         193 | Everett     | SH_CLERK | 3900.00 |
+|         194 | McCain      | SH_CLERK | 3200.00 |
+|         195 | Jones       | SH_CLERK | 2800.00 |
+|         196 | Walsh       | SH_CLERK | 3100.00 |
+|         197 | Feeney      | SH_CLERK | 3000.00 |
+|         198 | OConnell    | SH_CLERK | 2600.00 |
+|         199 | Grant       | SH_CLERK | 2600.00 |
++-------------+-------------+----------+---------+
+44 rows in set (0.00 sec)
+```
+
+## 相关子查询
+
+如果子查询的执行依赖于外部查询，通常情况下都是因为子查询中的表用到了外部的表，并进行了外部关联，因此每执行一次外部查询，子查询都要重新计算一次，这样的子查询称之为 关联子查询。
+
+> 查询员工中工资大于本部门平均工资的员工的last_name,salary和其department_id
+
+
+```sql
+select last_name, department_id, salary 
+from employees as emp 
+where salary > (select avg(salary) from employees group by department_id having department_id = emp.department_id);
+# 子查询中使用了外部的表字段作为查询条件
+
++-----------+---------------+----------+
+| last_name | department_id | salary   |
++-----------+---------------+----------+
+| King      |            90 | 24000.00 |
+| Hunold    |            60 |  9000.00 |
+| Ernst     |            60 |  6000.00 |
+| Greenberg |           100 | 12000.00 |
+| Faviet    |           100 |  9000.00 |
+| Raphaely  |            30 | 11000.00 |
+| Weiss     |            50 |  8000.00 |
+| Fripp     |            50 |  8200.00 |
+| Kaufling  |            50 |  7900.00 |
+| Vollman   |            50 |  6500.00 |
+| Mourgos   |            50 |  5800.00 |
+| Ladwig    |            50 |  3600.00 |
+| Rajs      |            50 |  3500.00 |
+| Russell   |            80 | 14000.00 |
+| Partners  |            80 | 13500.00 |
+| Errazuriz |            80 | 12000.00 |
+| Cambrault |            80 | 11000.00 |
+| Zlotkey   |            80 | 10500.00 |
+| Tucker    |            80 | 10000.00 |
+| Bernstein |            80 |  9500.00 |
+| Hall      |            80 |  9000.00 |
+| King      |            80 | 10000.00 |
+| Sully     |            80 |  9500.00 |
+| McEwen    |            80 |  9000.00 |
+| Vishney   |            80 | 10500.00 |
+| Greene    |            80 |  9500.00 |
+| Ozer      |            80 | 11500.00 |
+| Bloom     |            80 | 10000.00 |
+| Fox       |            80 |  9600.00 |
+| Abel      |            80 | 11000.00 |
+| Sarchand  |            50 |  4200.00 |
+| Bull      |            50 |  4100.00 |
+| Chung     |            50 |  3800.00 |
+| Dilly     |            50 |  3600.00 |
+| Bell      |            50 |  4000.00 |
+| Everett   |            50 |  3900.00 |
+| Hartstein |            20 | 13000.00 |
+| Higgins   |           110 | 12000.00 |
++-----------+---------------+----------+
+38 rows in set (0.01 sec)
+```
+
+
+## `EXISTS` 和 `NOT EXISTS` 关键字
+
+- 关联子查询通常也会和 `EXISTS` 操作符一起使用，用来检查在子查询中是否存在满足条件的行。
+- 如果在子查询中不存在满足条件的行:
+  - 条件返回 false;
+  - 继续在子查询中查找;
+- 如果在子查询中存在满足条件的行:
+  - 不在子查询中继续查找；
+  - 条件返回 true;
+- `NOT EXISTS` 关键字表示如果不存在某种条件，则返回 true，否则返回 false;
+
+> 查询公司管理则的 employee_id, last_name, job_id, department_id
+
+```sql
+select employee_id, last_name, job_id, department_id 
+from employees as e1 
+where exists (select * from employees as e2 where e2.manager_id = e1.employee_id);
+
++-------------+-----------+---------+---------------+
+| employee_id | last_name | job_id  | department_id |
++-------------+-----------+---------+---------------+
+|         100 | King      | AD_PRES |            90 |
+|         101 | Kochhar   | AD_VP   |            90 |
+|         102 | De Haan   | AD_VP   |            90 |
+|         103 | Hunold    | IT_PROG |            60 |
+|         108 | Greenberg | FI_MGR  |           100 |
+|         114 | Raphaely  | PU_MAN  |            30 |
+|         120 | Weiss     | ST_MAN  |            50 |
+|         121 | Fripp     | ST_MAN  |            50 |
+|         122 | Kaufling  | ST_MAN  |            50 |
+|         123 | Vollman   | ST_MAN  |            50 |
+|         124 | Mourgos   | ST_MAN  |            50 |
+|         145 | Russell   | SA_MAN  |            80 |
+|         146 | Partners  | SA_MAN  |            80 |
+|         147 | Errazuriz | SA_MAN  |            80 |
+|         148 | Cambrault | SA_MAN  |            80 |
+|         149 | Zlotkey   | SA_MAN  |            80 |
+|         201 | Hartstein | MK_MAN  |            20 |
+|         205 | Higgins   | AC_MGR  |           110 |
++-------------+-----------+---------+---------------+
+18 rows in set (0.00 sec)
+```
 
 
 
