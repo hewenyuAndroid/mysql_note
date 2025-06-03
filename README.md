@@ -20,6 +20,19 @@ C:\Program Files\MySQL\MySQL Server 8.0\bin
 
 ![mysql --version](./imgs/mysql-version.png)
 
+# mysql 安装问题
+
+安装mysql8.0+出现如下问题
+
+![mysql 安装问题](./imgs/mysql-install-problem.png)
+
+解决方案: 在微软官网下载 vc++ 可再发行程序包
+
+https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist?view=msvc-170#visual-studio-2015-2017-2019-and-2022
+
+![vc++可再发行程序包](./imgs/mysql-install-problem-release.png)
+
+![vc++可再发行程序包安装](./imgs/mysql-install-problem-process.png)
 
 ## 登录 mysql
 
