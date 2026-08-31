@@ -86,7 +86,7 @@ mysql>
 
 # 2、`Mysql` 的数据目录
 
-> mysql 5.5
+> mysql 5.7
 
 ```shell
 mysql> show variables like 'datadir';
@@ -95,7 +95,7 @@ mysql> show variables like 'datadir';
 +---------------+-----------------+
 | datadir       | /var/lib/mysql/ |
 +---------------+-----------------+
-1 row in set (0.00 sec)
+1 row in set (0.02 sec)
 ```
 
 > mysql 8.4
@@ -113,6 +113,212 @@ mysql> show variables like 'datadir';
 `MySql` 的所有用户数据、系统元素据、事务日志等物理存储在 `/var/lib/mysql/` 数据目录下。一旦 `datadir` 损坏或丢失，整个`MySql`服务的数据将不可恢复（除非有备份）。
 
 默认情况下，`MySql` 的 `datadir` 目录都指向 `/var/lib/mysql/`，但是不同版本之间 `datadir` 里面存储的数据文件不同。
+
+# 3、`MySql` 的命令目录
+
+`/usr/bin` 是 `Linux` 系统中存放普通用户可执行的系统命令和应用程序的核心目录。
+
+> mysql 5.7
+
+```shell
+bash-4.2# pwd
+/usr/bin
+bash-4.2# ls -la | grep mysql
+-rwxr-xr-x 1 root root  4204288 Oct 11  2023 mysql
+-rwxr-xr-x 1 root root  8108264 Oct 14  2023 mysql-secret-store-login-path
+-rwxr-xr-x 1 root root     5197 Oct 11  2023 mysql_config
+-rwxr-xr-x 1 root root  5257000 Oct 11  2023 mysql_install_db
+-rwxr-xr-x 1 root root  3652064 Oct 11  2023 mysql_ssl_rsa_setup
+-rwxr-xr-x 1 root root  3561616 Oct 11  2023 mysql_tzinfo_to_sql
+-rwxr-xr-x 1 root root  4534056 Oct 11  2023 mysql_upgrade
+-rwxr-xr-x 1 root root  3878680 Oct 11  2023 mysqladmin
+-rwxr-xr-x 1 root root  3963136 Oct 11  2023 mysqldump
+-rwxr-xr-x 1 root root  4456760 Oct 11  2023 mysqlpump
+-rwxr-xr-x 1 root root 40283008 Oct 14  2023 mysqlsh
+bash-4.2#
+```
+
+> mysql 8.4
+
+```shell
+bash-5.1# pwd
+/usr/bin
+bash-5.1# ls -la | grep mysql
+-rwxr-xr-x 1 root root  7754312 Jun 30 19:24 mysql
+-rwxr-xr-x 1 root root  8016512 Jun 10 13:55 mysql-secret-store-login-path
+-rwxr-xr-x 1 root root     5053 Jun 30 18:43 mysql_config
+-rwxr-xr-x 1 root root  7483992 Jun 30 19:24 mysql_migrate_keyring
+-rwxr-xr-x 1 root root   150792 Jun 30 19:24 mysql_tzinfo_to_sql
+-rwxr-xr-x 1 root root  7421192 Jun 30 19:24 mysqladmin
+-rwxr-xr-x 1 root root  7508264 Jun 30 19:24 mysqldump
+-rwxr-xr-x 1 root root 27720912 Jun 10 13:55 mysqlsh
+bash-5.1#
+```
+
+- `mysqladmin`: 用于执行一些不需要交互登录的操作。常见用法包括:
+  - 检查服务器是否存活：`mysqladmin ping`
+  - 关闭数据库：`mysqladmin shutdown`
+  - 创建或删除数据库：`mysqladmin create dbname / drop dbname`
+  - 刷新权限或日志：`mysqladmin flush-privileges / flush-logs`
+- `mysqldump`：这是最常用的逻辑备份工具。它会将数据库中的数据导出为一系列 `SQL` 语句（如 `CREATE TABLE`、`INSERT INTO`），保存为一个文本文件。可以用这个文件来重建整个数据库或特定表，非常适合做数据迁移或定期备份。
+
+
+```shell
+# 运行指令需要带上账号密码
+bash-5.1# mysqladmin -uroot -p ping
+Enter password:
+mysqld is alive
+bash-5.1#
+```
+
+# 4、`MySql` 的配置目录
+
+## 4.1、`my.cnf` 全局配置文件
+
+`MySql` 在启动时会按以下顺序查找 `my.cnf` 配置文件（越靠前优先级越高）：
+
+1. `/etc/my.cnf​` （全局配置文件，最常用）
+2. `/etc/mysql/my.cnf​` （Debian/Ubuntu 系常用）
+3. `~/.my.cnf`​ （用户级，仅影响当前用户连接的客户端）
+
+`MySql` 按照顺序找到上述任意一个 `my.cnf` 配置文件，就会停止搜索 `my.cnf` 配置文件，后续的 `my.cnf` 文件将不会被 `MySql` 解析到;
+
+> mysql 5.7  `/etc/my.cnf`
+
+```shell
+# For advice on how to change settings please see
+# http://dev.mysql.com/doc/refman/5.7/en/server-configuration-defaults.html
+
+[mysqld]
+#
+# Remove leading # and set to the amount of RAM for the most important data
+# cache in MySQL. Start at 70% of total RAM for dedicated server, else 10%.
+# innodb_buffer_pool_size = 128M
+#
+# Remove leading # to turn on a very important data integrity option: logging
+# changes to the binary log between backups.
+# log_bin
+#
+# Remove leading # to set options mainly useful for reporting servers.
+# The server defaults are faster for transactions and fast SELECTs.
+# Adjust sizes as needed, experiment to find the optimal values.
+# join_buffer_size = 128M
+# sort_buffer_size = 2M
+# read_rnd_buffer_size = 2M
+skip-host-cache
+skip-name-resolve
+datadir=/var/lib/mysql
+socket=/var/run/mysqld/mysqld.sock
+secure-file-priv=/var/lib/mysql-files
+user=mysql
+
+# Disabling symbolic-links is recommended to prevent assorted security risks
+symbolic-links=0
+
+#log-error=/var/log/mysqld.log
+pid-file=/var/run/mysqld/mysqld.pid
+[client]
+socket=/var/run/mysqld/mysqld.sock
+
+# 加载 /etc/mysql/conf.d/ 目录下的所有 .cnf 配置文件到当前位置
+# 同名的配置，后面的配置会覆盖前面的配置
+!includedir /etc/mysql/conf.d/
+!includedir /etc/mysql/mysql.conf.d/
+```
+
+> mysql 8.4 `/etc/my.cnf`
+
+```shell
+# /etc/my.cnf
+
+# For advice on how to change settings please see
+# http://dev.mysql.com/doc/refman/8.4/en/server-configuration-defaults.html
+
+[mysqld]
+#
+# Remove leading # and set to the amount of RAM for the most important data
+# cache in MySQL. Start at 70% of total RAM for dedicated server, else 10%.
+# innodb_buffer_pool_size = 128M
+#
+# Remove leading # to turn on a very important data integrity option: logging
+# changes to the binary log between backups.
+# log_bin
+#
+# Remove leading # to set options mainly useful for reporting servers.
+# The server defaults are faster for transactions and fast SELECTs.
+# Adjust sizes as needed, experiment to find the optimal values.
+# join_buffer_size = 128M
+# sort_buffer_size = 2M
+# read_rnd_buffer_size = 2M
+
+host-cache-size=0
+skip-name-resolve
+datadir=/var/lib/mysql
+socket=/var/run/mysqld/mysqld.sock
+secure-file-priv=/var/lib/mysql-files
+user=mysql
+
+pid-file=/var/run/mysqld/mysqld.pid
+[client]
+socket=/var/run/mysqld/mysqld.sock
+
+# 加载 /etc/mysql/conf.d/ 目录下的所有 .cnf 配置文件到当前位置
+# 同名的配置，后面的配置会覆盖前面的配置
+!includedir /etc/mysql/conf.d/
+```
+
+## 4.2、`/usr/share/mysql` 共享资源目录
+
+`/usr/share/mysql` 是 `MySQL` 的共享资源目录，存放的是只读、架构无关的辅助文件。常见的大类是：
+
+- 字符集文件：各种 `collation` 的定义数据
+- 错误消息文件：不同语言的错误提示（如 `errmsg.sys`）
+- 配置文件示例：如 `my-huge.cnf`、`my-large.cnf`、`my-medium.cnf`、`my-small.cnf` 等模板
+- SQL 初始化/基准测试脚本：如 `sql-bench` 相关脚本
+- 时区数据（部分版本）：配合 `mysql_tzinfo_to_sql` 使用
+
+
+> mysql 5.7  `/usr/share/mysql`
+
+```shell
+bash-4.2# pwd
+/usr/share/mysql
+
+bash-4.2# ls
+bulgarian             french                       mysql_security_commands.sql   russian
+charsets              german                       mysql_sys_schema.sql          serbian
+czech                 greek                        mysql_system_tables.sql       slovak
+danish                hungarian                    mysql_system_tables_data.sql  spanish
+dictionary.txt        innodb_memcached_config.sql  mysql_test_data_timezone.sql  swedish
+dutch                 install_rewriter.sql         norwegian                     ukrainian
+english               italian                      norwegian-ny                  uninstall_rewriter.sql
+errmsg-utf8.txt       japanese                     polish
+estonian              korean                       portuguese
+fill_help_tables.sql  magic                        romanian
+bash-4.2#
+```
+
+> mysql 8.4 `/usr/share/mysql8.4`
+
+```shell
+bash-5.1# pwd
+/usr/share/mysql-8.4
+
+bash-5.1# ls
+bulgarian       dutch     greek                 korean                     polish      slovak
+charsets        english   hungarian             messages_to_clients.txt    portuguese  spanish
+czech           estonian  install_rewriter.sql  messages_to_error_log.txt  romanian    swedish
+danish          french    italian               norwegian                  russian     ukrainian
+dictionary.txt  german    japanese              norwegian-ny               serbian     uninstall_rewriter.sql
+bash-5.1#
+```
+
+
+
+
+
+
+
 
 
 ## 2.1、`MySql 8.4` 的数据目录
