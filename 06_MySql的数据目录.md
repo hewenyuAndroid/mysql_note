@@ -313,6 +313,245 @@ dictionary.txt  german    japanese              norwegian-ny               serbi
 bash-5.1#
 ```
 
+# 5、数据库和文件系统的关系
+
+## 5.1、`MySql` 自带的数据库
+
+> mysql 5.7
+
+```shell
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+4 rows in set (0.01 sec)
+
+mysql>
+```
+
+> mysql 8.4
+
+```shell
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+4 rows in set (0.02 sec)
+```
+
+`MySql` 中有四个数据库是属于自带的系统数据库, `mysql`、`information_schema`、`performance_schema` 和 `sys`；
+
+### 5.1.1、`mysql` 数据库
+
+`mysql` 数据库是系统自带的核心数据库，它存储了`MySQL`的用户账户和权限信息，一些存储过程、事件的定义信息，一些运行过程中产生的日志信息，一些帮助信息以及时区信息等。
+
+> mysql 5.7
+
+```shell
+mysql> use mysql;
+Database changed
+mysql> show tables;
++---------------------------+
+| Tables_in_mysql           |
++---------------------------+
+| columns_priv              |
+| db                        |
+| engine_cost               |
+| event                     |
+| func                      |
+| general_log               |
+| gtid_executed             |
+| help_category             |
+| help_keyword              |
+| help_relation             |
+| help_topic                |
+| innodb_index_stats        |
+| innodb_table_stats        |
+| ndb_binlog_index          |
+| plugin                    |
+| proc                      |
+| procs_priv                |
+| proxies_priv              |
+| server_cost               |
+| servers                   |
+| slave_master_info         |
+| slave_relay_log_info      |
+| slave_worker_info         |
+| slow_log                  |
+| tables_priv               |
+| time_zone                 |
+| time_zone_leap_second     |
+| time_zone_name            |
+| time_zone_transition      |
+| time_zone_transition_type |
+| user                      |
++---------------------------+
+31 rows in set (0.00 sec)
+
+mysql>
+```
+
+> mysql 8.4
+
+```shell
+mysql> use mysql;
+Database changed
+mysql> show tables;
++------------------------------------------------------+
+| Tables_in_mysql                                      |
++------------------------------------------------------+
+| columns_priv                                         |
+| component                                            |
+| db                                                   |
+| default_roles                                        |
+| engine_cost                                          |
+| func                                                 |
+| general_log                                          |
+| global_grants                                        |
+| gtid_executed                                        |
+| help_category                                        |
+| help_keyword                                         |
+| help_relation                                        |
+| help_topic                                           |
+| innodb_index_stats                                   |
+| innodb_table_stats                                   |
+| ndb_binlog_index                                     |
+| password_history                                     |
+| plugin                                               |
+| procs_priv                                           |
+| proxies_priv                                         |
+| replication_asynchronous_connection_failover         |
+| replication_asynchronous_connection_failover_managed |
+| replication_group_configuration_version              |
+| replication_group_member_actions                     |
+| role_edges                                           |
+| server_cost                                          |
+| servers                                              |
+| slave_master_info                                    |
+| slave_relay_log_info                                 |
+| slave_worker_info                                    |
+| slow_log                                             |
+| tables_priv                                          |
+| time_zone                                            |
+| time_zone_leap_second                                |
+| time_zone_name                                       |
+| time_zone_transition                                 |
+| time_zone_transition_type                            |
+| user                                                 |
++------------------------------------------------------+
+38 rows in set (0.00 sec)
+
+mysql>
+```
+
+### 5.1.2、`information_schema` 数据库
+
+`information_schema` 数据库保存着 `MySQL` 服务器维护的所有其他数据库的信息，比如有哪些表、哪些视图、哪些触发器、哪些列、哪些索引。这些信息并不是真实的用户数据，而是一些描述性信息，有时候也称之为元数据。在系统数据库 `information_schema` 中提供了一些以 `innodb_sys` 开头的表，用于表示内部系统表。
+
+注意，在 `MySQL 5.7` 及更早版本中，`information_schema` 里的 `InnoDB` 系统表名称以 `INNODB_SYS_` 开头，例如：
+
+```shell
+INNODB_SYS_TABLES
+INNODB_SYS_COLUMNS
+INNODB_SYS_INDEXES
+```
+
+从 `MySQL 8.0` 开始，这些表被统一简化为 `INNODB_` 前缀，去掉了中间的 `SYS`，变为：
+
+```shell
+INNODB_TABLES
+INNODB_COLUMNS
+INNODB_INDEXES
+```
+
+> mysql 5.7
+
+```shell
+mysql> use information_schema;
+Database changed
+mysql> show tables like 'INNODB_SYS%';
++--------------------------------------------+
+| Tables_in_information_schema (INNODB_SYS%) |
++--------------------------------------------+
+| INNODB_SYS_DATAFILES                       |
+| INNODB_SYS_VIRTUAL                         |
+| INNODB_SYS_INDEXES                         |
+| INNODB_SYS_TABLES                          |
+| INNODB_SYS_FIELDS                          |
+| INNODB_SYS_TABLESPACES                     |
+| INNODB_SYS_FOREIGN_COLS                    |
+| INNODB_SYS_COLUMNS                         |
+| INNODB_SYS_FOREIGN                         |
+| INNODB_SYS_TABLESTATS                      |
++--------------------------------------------+
+10 rows in set (0.00 sec)
+
+mysql>
+```
+
+> mysql 8.4
+
+```shell
+mysql> use information_schema;
+Database changed
+mysql> show tables like 'INNODB%';
++----------------------------------------+
+| Tables_in_information_schema (INNODB%) |
++----------------------------------------+
+| INNODB_BUFFER_PAGE                     |
+| INNODB_BUFFER_PAGE_LRU                 |
+| INNODB_BUFFER_POOL_STATS               |
+| INNODB_CACHED_INDEXES                  |
+| INNODB_CMP                             |
+| INNODB_CMPMEM                          |
+| INNODB_CMPMEM_RESET                    |
+| INNODB_CMP_PER_INDEX                   |
+| INNODB_CMP_PER_INDEX_RESET             |
+| INNODB_CMP_RESET                       |
+| INNODB_COLUMNS                         |
+| INNODB_DATAFILES                       |
+| INNODB_FIELDS                          |
+| INNODB_FOREIGN                         |
+| INNODB_FOREIGN_COLS                    |
+| INNODB_FT_BEING_DELETED                |
+| INNODB_FT_CONFIG                       |
+| INNODB_FT_DEFAULT_STOPWORD             |
+| INNODB_FT_DELETED                      |
+| INNODB_FT_INDEX_CACHE                  |
+| INNODB_FT_INDEX_TABLE                  |
+| INNODB_INDEXES                         |
+| INNODB_METRICS                         |
+| INNODB_SESSION_TEMP_TABLESPACES        |
+| INNODB_TABLES                          |
+| INNODB_TABLESPACES                     |
+| INNODB_TABLESPACES_BRIEF               |
+| INNODB_TABLESTATS                      |
+| INNODB_TEMP_TABLE_INFO                 |
+| INNODB_TRX                             |
+| INNODB_VIRTUAL                         |
++----------------------------------------+
+31 rows in set (0.01 sec)
+
+mysql>
+```
+
+### 5.1.3、`performance_schema` 数据库
+
+`performance_schema` 数据库里主要保存 `MySQL` 服务器运行过程中的一些状态信息，可以用来监控 `MySQL` 服务的各类性能指标。包括统计最近执行了哪些语句，在执行过程的每个阶段都花费了多长时间，内存的使用情况等信息。
+
+### 5.1.4、`sys` 数据库
+
+`sys` 数据库主要是通过视图的形式把 `information_schema` 和 `performance_schema` 结合起来，帮助系统管理员和开发人员监控 `MySQL` 的技术性能。
 
 
 # 2、数据库和文件系统的关系
