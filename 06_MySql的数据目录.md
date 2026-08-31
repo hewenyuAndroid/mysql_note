@@ -554,6 +554,125 @@ mysql>
 `sys` 数据库主要是通过视图的形式把 `information_schema` 和 `performance_schema` 结合起来，帮助系统管理员和开发人员监控 `MySQL` 的技术性能。
 
 
+## 5.2、数据库 (`database`) 在文件系统中的表示
+
+除了 `information_schema` 这个系统数据库，其它的数据库在 `/var/bin/mysql` 数据目录下都有对应的子目录。
+
+创建一个 `testdb` 数据库，里面创建一张 `emp` 表;
+
+```sql
+mysql> create database testdb;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> use testdb;
+Database changed
+mysql> create table if not exists emp(id int primary key auto_increment, lname varchar(20));
+Query OK, 0 rows affected (0.06 sec)
+```
+
+此时 `mysql` 会在 `datadir` 数据存储目录下，为 `testdb` 数据库创建一个同名的目录 `testdb`
+
+> mysql 5.7，查看 `/var/lib/mysql/` mysql 数据存储目录
+
+```shell
+bash-4.2# pwd
+/var/lib/mysql
+bash-4.2# ls -la | grep testdb
+drwxr-x--- 2 mysql mysql     4096 Aug 31 13:07 testdb
+
+bash-4.2# pwd
+/var/lib/mysql/testdb
+bash-4.2# ls -la
+total 120
+drwxr-x--- 2 mysql mysql  4096 Aug 31 13:07 .
+drwxr-xr-x 6 mysql root   4096 Aug 31 13:07 ..
+-rw-r----- 1 mysql mysql    65 Aug 31 13:07 db.opt
+-rw-r----- 1 mysql mysql  8588 Aug 31 13:07 emp.frm
+-rw-r----- 1 mysql mysql 98304 Aug 31 13:07 emp.ibd
+bash-4.2#
+```
+
+> mysql 8.4，查看 `/var/lib/mysql/` mysql 数据存储目录
+
+```shell
+bash-5.1# pwd
+/var/lib/mysql
+bash-5.1# ls -la | grep testdb
+drwxr-x--- 2 mysql mysql     4096 Aug 31 13:09 testdb
+
+bash-5.1# pwd
+/var/lib/mysql/testdb
+bash-5.1# ls -la
+total 120
+drwxr-x--- 2 mysql mysql   4096 Aug 31 13:09 .
+drwxr-xr-x 8 mysql root    4096 Aug 31 13:08 ..
+# 可以看到 mysql8.4 下面只有一个 emp.ibd 文件
+-rw-r----- 1 mysql mysql 114688 Aug 31 13:09 emp.ibd
+bash-5.1#
+```
+
+## 5.3、表 (`table`) 在文件系统中的表示
+
+数据库在文件系统中，以目录的形式保存在 `datadir` 目录下，目录名称为数据库名称。
+
+> mysql 5.7
+
+```shell
+bash-4.2# pwd
+/var/lib/mysql/testdb
+bash-4.2# ls -la
+total 120
+drwxr-x--- 2 mysql mysql  4096 Aug 31 13:07 .
+drwxr-xr-x 6 mysql root   4096 Aug 31 13:07 ..
+# 记录该数据库的字符集和排序规则，文本文件
+-rw-r----- 1 mysql mysql    65 Aug 31 13:07 db.opt
+# 
+-rw-r----- 1 mysql mysql  8588 Aug 31 13:07 emp.frm
+-rw-r----- 1 mysql mysql 98304 Aug 31 13:07 emp.ibd
+bash-4.2#
+```
+
+- `emp.ibd` 二进制文件，在 `mysql5.7` 中，该文件只存储数据和索引;
+- `emp.frm` 二进制文件，用于存储表结构等信息，`mysql8.0` 后该文件被移除，表结构信息保存到 `.ibd` 文件中;
+- `db.opt` 是一个文本文件，用于存储该数据库的字符集和排序规则等
+
+```shell
+bash-4.2# cat db.opt
+default-character-set=latin1
+default-collation=latin1_swedish_ci
+bash-4.2#
+```
+
+> mysql 8.4
+
+```shell
+bash-5.1# pwd
+/var/lib/mysql/testdb
+bash-5.1# ls -la
+total 120
+drwxr-x--- 2 mysql mysql   4096 Aug 31 13:09 .
+drwxr-xr-x 8 mysql root    4096 Aug 31 13:08 ..
+-rw-r----- 1 mysql mysql 114688 Aug 31 13:09 emp.ibd
+bash-5.1#
+```
+
+- `emp.ibd` 二进制文件，`mysql8.0` 开始 `.ibd` 文件内部新增了 `SDI (Serialized Dictionary Information)` 区，以 `JSON` 格式存储该表的元数据(表名、列定义、索引、字符集等)；
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # 2、数据库和文件系统的关系
 
 ## 2.1、`MySql` 自带的数据库
