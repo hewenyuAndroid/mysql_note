@@ -1,36 +1,34 @@
 [toc]
 
-# 1、`Mysql` 的数据目录
+# 1、在 `Docker` 中创建 `mysql` 容器
 
-在 `docker` 中启动 MySQL 5.5 镜像的容器
+## 1.1、创建 `mysql 5.7` 版本容器
+
+在 `docker` 中启动 MySQL 5.7 镜像的容器
 
 ```shell
-# 启动 mysql5.5 版本镜像的容器
-# 宿主机端口 3330 映射到mysql5.5 容器的 3306 端口
-# 宿主机 /home/hewenyu/docker/mysql5.5/data 目录映射容器 /var/lib/mysql 目录
-# 宿主机 /home/hewenyu/docker/mysql5.5/log 目录映射容器 /var/log/mysql 目录
-# 宿主机 /home/hewenyu/docker/mysql5.5/config 目录映射 /etc/mysql/conf.d 目录
+# docker run --name mysql5.7 -dp 3330:3306 -v /home/hewenyu/docker/mysql5.7/data:/var/lib/mysql -v /home/hewenyu/docker/mysql5.7/log:/var/log/mysql -v /home/hewenyu/docker/mysql5.7/config:/etc/mysql/conf.d -e MYSQL_ROOT_PASSWORD=123456 mysql:5.7
+# 启动 mysql5.7 版本镜像的容器
+# 宿主机端口 3330 映射到mysql5.7 容器的 3306 端口
+# 宿主机 /home/hewenyu/docker/mysql5.7/data 目录映射容器 /var/lib/mysql 目录
+# 宿主机 /home/hewenyu/docker/mysql5.7/log 目录映射容器 /var/log/mysql 目录
+# 宿主机 /home/hewenyu/docker/mysql5.7/config 目录映射 /etc/mysql/conf.d 目录
 # 初始密码是 123456
 
-hewenyu@hewenyu:/mnt/c/Users/he875$ docker run --name mysql5.5 -dp 3330:3306 -v /home/hewenyu/docker/mysql5.5/data:/var/lib/mysql -v /home/hewenyu/docker/mysql5.5/log:/var/log/mysql -v /home/hewenyu/docker/mysql5.5/config:/etc/mysql/conf.d
--e MYSQL_ROOT_PASSWORD=123456 mysql:5.5
-dd23aab9ac965bbc83252599e401ffafb2ed5b8126527199d0675f05cefe3f30
-hewenyu@hewenyu:/mnt/c/Users/he875$
-hewenyu@hewenyu:/mnt/c/Users/he875$ docker ps | grep mysql5.5
-dd23aab9ac96   mysql:5.5   "docker-entrypoint.s…"   15 seconds ago   Up 15 seconds   0.0.0.0:3330->3306/tcp, [::]:3330->3306/tcp              mysql5.5
-hewenyu@hewenyu:/mnt/c/Users/he875$
-
-# 进入容器内部
-hewenyu@hewenyu:/mnt/c/Users/he875$ docker exec -it mysql5.5 /bin/bash
-root@dd23aab9ac96:/#
-# 登录数据库
-root@dd23aab9ac96:/# mysql -uroot -p
+hewenyu@hewenyu:/mnt/c/Users/he875$ docker run --name mysql5.7 -dp 3330:3306 -v /home/hewenyu/docker/mysql5.7/data:/var/
+lib/mysql -v /home/hewenyu/docker/mysql5.7/log:/var/log/mysql -v /home/hewenyu/docker/mysql5.7/config:/etc/mysql/conf.d
+-e MYSQL_ROOT_PASSWORD=123456 mysql:5.7
+0cbb1d9759f1bcf695bc05682ef9e9cca255c4c50af1868c8015e56b5896e589
+hewenyu@hewenyu:/mnt/c/Users/he875$ docker ps | grep mysql5.7
+0cbb1d9759f1   mysql:5.7   "docker-entrypoint.s…"   10 seconds ago   Up 9 seconds    33060/tcp, 0.0.0.0:3330->3306/tcp, [::]:3330->3306/tcp   mysql5.7
+hewenyu@hewenyu:/mnt/c/Users/he875$ docker exec -it mysql5.7 /bin/bash
+bash-4.2# mysql -uroot -p
 Enter password:
 Welcome to the MySQL monitor.  Commands end with ; or \g.
-Your MySQL connection id is 1
-Server version: 5.5.62 MySQL Community Server (GPL)
+Your MySQL connection id is 2
+Server version: 5.7.44 MySQL Community Server (GPL)
 
-Copyright (c) 2000, 2018, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2000, 2023, Oracle and/or its affiliates.
 
 Oracle is a registered trademark of Oracle Corporation and/or its
 affiliates. Other names may be trademarks of their respective
@@ -38,20 +36,90 @@ owners.
 
 Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
 
-mysql> show databases;
-+--------------------+
-| Database           |
-+--------------------+
-| information_schema |
-| mysql              |
-| performance_schema |
-+--------------------+
-3 rows in set (0.00 sec)
+mysql> select version();
++-----------+
+| version() |
++-----------+
+| 5.7.44    |
++-----------+
+1 row in set (0.00 sec)
 
 mysql>
 ```
 
-## 1.1、`MySql 8.4` 的数据目录
+## 1.2、创建 `mysql 8.4` 版本容器
+
+在 `docker` 中启动 `mysql 8.4` 版本镜像容器
+
+```shell
+# docker run --name mysql8.4 -dp 3332:3306 -v /home/hewenyu/docker/mysql8.4/data:/var/lib/mysql -v /home/hewenyu/docker/mysql8.4/log:/var/log/mysql -v /home/hewenyu/docker/mysql8.4/config:/etc/mysql/conf.d -e MYSQL_ROOT_PASSWORD=123456 mysql:8.4
+
+hewenyu@hewenyu:/mnt/c/Users/he875$ docker run --name mysql8.4 -dp 3332:3306 -v /home/hewenyu/docker/mysql8.4/data:/var/lib/mysql -v /home/hewenyu/docker/mysql8.4/log:/var/log/mysql -v /home/hewenyu/docker/mysql8.4/config:/etc/mysql/conf.d -e MYSQL_ROOT_PASSWORD=123456 mysql:8.4
+b8c2278d7de4e2d098900a8179187838df828727ba0c3453285f0dcf3cc63cf4
+hewenyu@hewenyu:/mnt/c/Users/he875$ docker ps | grep mysql8.4
+b8c2278d7de4   mysql:8.4   "docker-entrypoint.s…"   14 seconds ago   Up 14 seconds   33060/tcp, 0.0.0.0:3332->3306/tcp, [::]:3332->3306/tcp   mysql8.4
+hewenyu@hewenyu:/mnt/c/Users/he875$ docker exec -it mysql8.4 /bin/bash
+bash-5.1# mysql -uroot -p
+Enter password:
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 8
+Server version: 8.4.11 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2026, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> select version();
++-----------+
+| version() |
++-----------+
+| 8.4.11    |
++-----------+
+1 row in set (0.00 sec)
+
+mysql>
+```
+
+# 2、`Mysql` 的数据目录
+
+> mysql 5.5
+
+```shell
+mysql> show variables like 'datadir';
++---------------+-----------------+
+| Variable_name | Value           |
++---------------+-----------------+
+| datadir       | /var/lib/mysql/ |
++---------------+-----------------+
+1 row in set (0.00 sec)
+```
+
+> mysql 8.4
+
+```shell
+mysql> show variables like 'datadir';
++---------------+-----------------+
+| Variable_name | Value           |
++---------------+-----------------+
+| datadir       | /var/lib/mysql/ |
++---------------+-----------------+
+1 row in set (0.01 sec)
+```
+
+`MySql` 的所有用户数据、系统元素据、事务日志等物理存储在 `/var/lib/mysql/` 数据目录下。一旦 `datadir` 损坏或丢失，整个`MySql`服务的数据将不可恢复（除非有备份）。
+
+默认情况下，`MySql` 的 `datadir` 目录都指向 `/var/lib/mysql/`，但是不同版本之间 `datadir` 里面存储的数据文件不同。
+
+
+## 2.1、`MySql 8.4` 的数据目录
+
+
+
+## 2.2、`MySql 5.5` 的数据目录
 
 ### 1.1.1 `mysql` 数据库文件的存放目录: `/var/lib/mysql/`
 
