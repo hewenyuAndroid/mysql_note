@@ -166,6 +166,72 @@ mysql> select user, host from mysql.user;
 mysql>
 ```
 
+## 1.5、设置当前用户密码
+
+```shell
+# 创建 user1 用户，密码 123
+mysql> create user 'user1'@'localhost' identified by '123';
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> select user, host from mysql.user;
++------------------+-----------+
+| user             | host      |
++------------------+-----------+
+| mysql.infoschema | localhost |
+| mysql.session    | localhost |
+| mysql.sys        | localhost |
+| root             | localhost |
+| user1            | localhost |
++------------------+-----------+
+5 rows in set (0.00 sec)
+
+mysql>
+```
+
+> 使用 `ALTER USER` 命令来修改当前用户密码
+
+```shell
+ALTER USER USER() IDENTIFIED BY 'new_password';
+
+mysql> select user();
++-----------------+
+| user()          |
++-----------------+
+| user1@localhost |
++-----------------+
+1 row in set (0.00 sec)
+
+# 修改当前用户的密码为 456，新密码下次连接的时候生效
+mysql> ALTER USER USER() IDENTIFIED BY '456';
+Query OK, 0 rows affected (0.01 sec)
+```
+
+> 使用 `SET` 语句来修改当前用户密码
+
+- `MySQL 5.7` 及更早版本：`SET PASSWORD = 'new_password';` 是标准的修改当前用户密码的命令，直接生效。
+- `MySQL 8.0+`：这条语句已被标记为废弃（`deprecated`），但仍然可用。官方推荐使用 `ALTER USER USER() IDENTIFIED BY 'new_password';` 替代。
+
+```shell
+# 新密码下次连接时生效，无需执行 FLUSH PRIVILEGES
+mysql> set password = '789';
+Query OK, 0 rows affected (0.01 sec)
+```
+
+## 1.6、修改其它用户密码
+
+> 使用 `ALTER` 语句来修改普通用户的密码 可以使用`ALTER USER` 语句来修改普通用户的密码。基本语法形式如下：
+
+```shell
+ALTER USER user [IDENTIFIED BY '新密码'] [,user[IDENTIFIED BY '新密码']]…;
+```
+
+> 使用 `SET` 命令来修改普通用户的密码 使用`root`用户登录到`MySQL`服务器后，可以使用SET语句来修改普通用户的密码。SET语句的代码如下
+
+```shell
+SET PASSWORD FOR 'username'@'hostname'='new_password';
+```
+
+
 # 2、权限管理
 
 
