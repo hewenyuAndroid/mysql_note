@@ -615,7 +615,7 @@ bash-5.1#
 
 数据库在文件系统中，以目录的形式保存在 `datadir` 目录下，目录名称为数据库名称。
 
-> mysql 5.7
+### 5.3.1 `mysql 5.7` 表在文件系统中的表示
 
 ```shell
 bash-4.2# pwd
@@ -636,6 +636,8 @@ bash-4.2#
 - `emp.frm` 二进制文件，用于存储表结构等信息，`mysql8.0` 后该文件被移除，表结构信息保存到 `.ibd` 文件中;
 - `db.opt` 是一个文本文件，用于存储该数据库的字符集和排序规则等
 
+> `db.opt` 文本文件
+
 ```shell
 bash-4.2# cat db.opt
 default-character-set=latin1
@@ -643,7 +645,7 @@ default-collation=latin1_swedish_ci
 bash-4.2#
 ```
 
-> mysql 8.4
+### 5.3.2、 `mysql 8.4` 表在文件系统中的表示
 
 ```shell
 bash-5.1# pwd
@@ -656,7 +658,317 @@ drwxr-xr-x 8 mysql root    4096 Aug 31 13:08 ..
 bash-5.1#
 ```
 
-- `emp.ibd` 二进制文件，`mysql8.0` 开始 `.ibd` 文件内部新增了 `SDI (Serialized Dictionary Information)` 区，以 `JSON` 格式存储该表的元数据(表名、列定义、索引、字符集等)；
+- `emp.ibd` 二进制文件，存储数据库数据和索引，`mysql8.0` 开始 `.ibd` 文件内部新增了 `SDI (Serialized Dictionary Information)` 区，以 `JSON` 格式存储该表的元数据(表名、列定义、索引、字符集等)；
+
+> `docker` 中的 `mysql8.4` 容器有可能没有 `/usr/bin/ibd2sdi` 文件，可以通过如下指令安装
+
+```shell
+# 第 1 步：注册 MySQL 8.4 官方 YUM 仓库
+rpm -Uvh https://dev.mysql.com/get/mysql84-community-release-el9-1.noarch.rpm
+
+# 第 2 步（你调整后的两条）：先卸 minimal，再装完整 server
+microdnf remove -y mysql-community-server-minimal
+microdnf install -y mysql-community-server
+
+# 第 3 步：验证 ibd2sdi 是否就绪
+ls -la /usr/bin/ibd2sdi
+ibd2sdi --version
+```
+
+> 解码 `*.ibd` 文件
+
+```shell
+# 输出到控制台显示
+bash-5.1# ibd2sdi /var/lib/mysql/数据库名称/表名.ibd
+
+# 格式化输出到文件（方便查看）
+ibd2sdi --dump-file=emp.json -p /var/lib/mysql/你的数据库名/表名.ibd
+# 查看生成的 JSON 文件
+cat emp.json | less
+
+# 输出到控制台显示
+bash-5.1# ibd2sdi /var/lib/mysql/testdb/emp.ibd
+["ibd2sdi"
+,
+{
+        "type": 1,
+        "id": 367,
+        "object":
+                {
+    "mysqld_version_id": 80411,
+    "dd_version": 80300,
+    "sdi_version": 80019,
+    "dd_object_type": "Table",
+    # dd_object 描述表结构信息
+    "dd_object": {
+        "name": "emp",
+        "mysql_version_id": 80411,
+        "created": 20260831130910,
+        "last_altered": 20260831130910,
+        "hidden": 1,
+        "options": "avg_row_length=0;encrypt_type=N;key_block_size=0;keys_disabled=0;pack_record=1;stats_auto_recalc=0;stats_sample_pages=0;",
+        "columns": [
+            {
+                "name": "id",
+                "type": 4,
+                "is_nullable": false,
+                "is_zerofill": false,
+                "is_unsigned": false,
+                "is_auto_increment": true,
+                "is_virtual": false,
+                # hidden=1 是用户定义的列
+                "hidden": 1,
+                "ordinal_position": 1,
+                "char_length": 11,
+                "numeric_precision": 10,
+                "numeric_scale": 0,
+                "numeric_scale_null": false,
+                "datetime_precision": 0,
+                "datetime_precision_null": 1,
+                "has_no_default": false,
+                "default_value_null": false,
+                "srs_id_null": true,
+                "srs_id": 0,
+                "default_value": "AAAAAA==",
+                "default_value_utf8_null": true,
+                "default_value_utf8": "",
+                "default_option": "",
+                "update_option": "",
+                "comment": "",
+                "generation_expression": "",
+                "generation_expression_utf8": "",
+                "options": "interval_count=0;",
+                "se_private_data": "table_id=1068;",
+                "engine_attribute": "",
+                "secondary_engine_attribute": "",
+                "column_key": 2,
+                "column_type_utf8": "int",
+                "elements": [],
+                "collation_id": 255,
+                "is_explicit_collation": false
+            },
+            {
+                "name": "lname",
+                "type": 16,
+                "is_nullable": true,
+                "is_zerofill": false,
+                "is_unsigned": false,
+                "is_auto_increment": false,
+                "is_virtual": false,
+                "hidden": 1,
+                "ordinal_position": 2,
+                "char_length": 80,
+                "numeric_precision": 0,
+                "numeric_scale": 0,
+                "numeric_scale_null": true,
+                "datetime_precision": 0,
+                "datetime_precision_null": 1,
+                "has_no_default": false,
+                "default_value_null": true,
+                "srs_id_null": true,
+                "srs_id": 0,
+                "default_value": "",
+                "default_value_utf8_null": true,
+                "default_value_utf8": "",
+                "default_option": "",
+                "update_option": "",
+                "comment": "",
+                "generation_expression": "",
+                "generation_expression_utf8": "",
+                "options": "interval_count=0;",
+                "se_private_data": "table_id=1068;",
+                "engine_attribute": "",
+                "secondary_engine_attribute": "",
+                "column_key": 1,
+                "column_type_utf8": "varchar(20)",
+                "elements": [],
+                "collation_id": 255,
+                "is_explicit_collation": false
+            },
+            {
+                # 隐藏列，用于记录最后一次插入或更新改行的事务Id
+                "name": "DB_TRX_ID",
+                "type": 10,
+                "is_nullable": false,
+                "is_zerofill": false,
+                "is_unsigned": false,
+                "is_auto_increment": false,
+                "is_virtual": false,
+                # hidden=2 是系统隐藏的列
+                "hidden": 2,
+                "ordinal_position": 3,
+                "char_length": 6,
+                "numeric_precision": 0,
+                "numeric_scale": 0,
+                "numeric_scale_null": true,
+                "datetime_precision": 0,
+                "datetime_precision_null": 1,
+                "has_no_default": false,
+                "default_value_null": true,
+                "srs_id_null": true,
+                "srs_id": 0,
+                "default_value": "",
+                "default_value_utf8_null": true,
+                "default_value_utf8": "",
+                "default_option": "",
+                "update_option": "",
+                "comment": "",
+                "generation_expression": "",
+                "generation_expression_utf8": "",
+                "options": "",
+                "se_private_data": "table_id=1068;",
+                "engine_attribute": "",
+                "secondary_engine_attribute": "",
+                "column_key": 1,
+                "column_type_utf8": "",
+                "elements": [],
+                "collation_id": 63,
+                "is_explicit_collation": false
+            },
+            {
+                # 回滚指针，指向 undo log 中该行的前一个版本
+                "name": "DB_ROLL_PTR",
+                "type": 9,
+                "is_nullable": false,
+                "is_zerofill": false,
+                "is_unsigned": false,
+                "is_auto_increment": false,
+                "is_virtual": false,
+                "hidden": 2,
+                "ordinal_position": 4,
+                "char_length": 7,
+                "numeric_precision": 0,
+                "numeric_scale": 0,
+                "numeric_scale_null": true,
+                "datetime_precision": 0,
+                "datetime_precision_null": 1,
+                "has_no_default": false,
+                "default_value_null": true,
+                "srs_id_null": true,
+                "srs_id": 0,
+                "default_value": "",
+                "default_value_utf8_null": true,
+                "default_value_utf8": "",
+                "default_option": "",
+                "update_option": "",
+                "comment": "",
+                "generation_expression": "",
+                "generation_expression_utf8": "",
+                "options": "",
+                "se_private_data": "table_id=1068;",
+                "engine_attribute": "",
+                "secondary_engine_attribute": "",
+                "column_key": 1,
+                "column_type_utf8": "",
+                "elements": [],
+                "collation_id": 63,
+                "is_explicit_collation": false
+            }
+        ],
+        "schema_ref": "testdb",
+        "se_private_id": 1068,
+        "engine": "InnoDB",
+        "last_checked_for_upgrade_version_id": 0,
+        "comment": "",
+        "se_private_data": "autoinc=0;version=0;",
+        "engine_attribute": "",
+        "secondary_engine_attribute": "",
+        "row_format": 2,
+        "partition_type": 0,
+        "partition_expression": "",
+        "partition_expression_utf8": "",
+        "default_partitioning": 0,
+        "subpartition_type": 0,
+        "subpartition_expression": "",
+        "subpartition_expression_utf8": "",
+        "default_subpartitioning": 0,
+        "indexes": [
+            {
+                "name": "PRIMARY",
+                "hidden": false,
+                "is_generated": false,
+                "ordinal_position": 1,
+                "comment": "",
+                "options": "flags=0;",
+                "se_private_data": "id=158;root=4;space_id=2;table_id=1068;trx_id=1805;",
+                "type": 1,
+                "algorithm": 2,
+                "is_algorithm_explicit": false,
+                "is_visible": true,
+                "engine": "InnoDB",
+                "engine_attribute": "",
+                "secondary_engine_attribute": "",
+                "elements": [
+                    {
+                        "ordinal_position": 1,
+                        "length": 4,
+                        "order": 2,
+                        "hidden": false,
+                        "column_opx": 0
+                    },
+                    {
+                        "ordinal_position": 2,
+                        "length": 4294967295,
+                        "order": 2,
+                        "hidden": true,
+                        "column_opx": 2
+                    },
+                    {
+                        "ordinal_position": 3,
+                        "length": 4294967295,
+                        "order": 2,
+                        "hidden": true,
+                        "column_opx": 3
+                    },
+                    {
+                        "ordinal_position": 4,
+                        "length": 4294967295,
+                        "order": 2,
+                        "hidden": true,
+                        "column_opx": 1
+                    }
+                ],
+                "tablespace_ref": "testdb/emp"
+            }
+        ],
+        "foreign_keys": [],
+        "check_constraints": [],
+        "partitions": [],
+        "collation_id": 255
+    }
+}
+}
+,
+{
+        "type": 2,
+        "id": 7,
+        "object":
+                {
+    "mysqld_version_id": 80411,
+    "dd_version": 80300,
+    "sdi_version": 80019,
+    "dd_object_type": "Tablespace",
+    "dd_object": {
+        "name": "testdb/emp",
+        "comment": "",
+        "options": "autoextend_size=0;encryption=N;",
+        "se_private_data": "flags=16417;id=2;server_version=80411;space_version=1;state=normal;",
+        "engine": "InnoDB",
+        "engine_attribute": "",
+        "files": [
+            {
+                "ordinal_position": 1,
+                "filename": "./testdb/emp.ibd",
+                "se_private_data": "id=2;"
+            }
+        ]
+    }
+}
+}
+]
+bash-5.1#
+```
+
 
 
 
