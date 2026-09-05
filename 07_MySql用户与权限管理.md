@@ -520,8 +520,244 @@ mysql>
 ```
 
 
+# 3、角色管理
 
+角色（`Role`）管理是 `MySQL 8.0` 引入的原生特性，`5.7` 及更早版本没有内置的角色机制，只能通过逐用户 `GRANT` 来分配权限。
 
+角色本质上是一个"命名权限集合"，先把权限赋给角色，再把角色赋给用户，从而实现批量、集中的权限管理。
+
+```shell
+-- 1. 创建角色 'app_read' 等效于 'app_read'@'%'
+CREATE ROLE 'app_read', 'app_write';
+
+-- 2. 给角色授权
+GRANT SELECT ON mydb.* TO 'app_read';
+GRANT INSERT, UPDATE, DELETE ON mydb.* TO 'app_write';
+
+-- 3. 把角色分配给用户
+CREATE USER 'dev1'@'%' IDENTIFIED BY 'secret';
+GRANT 'app_read' TO 'dev1'@'%';
+
+-- 4. 设置默认角色，让角色在登录时自动激活
+SET DEFAULT ROLE ALL TO 'dev1'@'%';
+```
+
+## 3.1、创建 `manager` 角色，并赋值给 `lisi` 用户
+
+> step1: `root` 下创建 `lisi'@'%' 用户
+
+```shell
+mysql> create user 'lisi' identified by '123456';
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> show grants for 'lisi'@'%';
++----------------------------------+
+| Grants for lisi@%                |
++----------------------------------+
+| GRANT USAGE ON *.* TO `lisi`@`%` |
++----------------------------------+
+1 row in set (0.00 sec)
+
+mysql>
+```
+
+> step2: `root` 下创建 `manager'@'%' 角色
+
+```shell
+mysql> create role 'manager'@'%';
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> show grants for 'manager';
++-------------------------------------+
+| Grants for manager@%                |
++-------------------------------------+
+| GRANT USAGE ON *.* TO `manager`@`%` |
++-------------------------------------+
+1 row in set (0.00 sec)
+
+mysql>
+```
+
+`role` 角色和用户 `lisi` 都在 `mysql.user` 表下，也就意味着 角色和用户不能重名;
+
+```shell
+mysql> select user, host from mysql.user where user in ('lisi', 'manager');
++---------+------+
+| user    | host |
++---------+------+
+| lisi    | %    |
+| manager | %    |
++---------+------+
+2 rows in set (0.01 sec)
+
+mysql>
+```
+
+> step3: 登录 `lisi` 查看权限
+
+```shell
+bash-5.1# mysql -ulisi -p123456
+mysql: [Warning] Using a password on the command line interface can be insecure.
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 13
+Server version: 8.4.11 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2026, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show grants;
++----------------------------------+
+| Grants for lisi@%                |
++----------------------------------+
+| GRANT USAGE ON *.* TO `lisi`@`%` |
++----------------------------------+
+1 row in set (0.00 sec)
+
+mysql>
+# 查看数据库只能看到默认的数据库
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| performance_schema |
++--------------------+
+2 rows in set (0.02 sec)
+
+mysql>
+```
+
+> step4: `root` 用户下给 `manager` 角色授予 `testdb.emp` 表的 `select,update` 权限
+
+给角色授予权限的命令和给用户授予权限的命令相同
+
+```shell
+mysql> grant select, update on testdb.emp to 'manager';
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> show grants for manager;
++---------------------------------------------------------+
+| Grants for manager@%                                    |
++---------------------------------------------------------+
+| GRANT USAGE ON *.* TO `manager`@`%`                     |
+| GRANT SELECT, UPDATE ON `testdb`.`emp` TO `manager`@`%` |
++---------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+mysql>
+```
+
+> step5: 给 `lisi` 授予 `manager` 角色
+
+```shell
+mysql> grant 'manager'@'%' to 'lisi'@'%';
+Query OK, 0 rows affected (0.02 sec)
+
+# 可以看到李四被授予了 manager 权限
+mysql> show grants for lisi;
++-----------------------------------+
+| Grants for lisi@%                 |
++-----------------------------------+
+| GRANT USAGE ON *.* TO `lisi`@`%`  |
+| GRANT `manager`@`%` TO `lisi`@`%` |
++-----------------------------------+
+2 rows in set (0.00 sec)
+
+mysql>
+```
+
+> step6: 切换到 `lisi` 账号下，查看权限和数据库
+
+```shell
+# 可以看到有 manager 权限
+mysql> show grants;
++-----------------------------------+
+| Grants for lisi@%                 |
++-----------------------------------+
+| GRANT USAGE ON *.* TO `lisi`@`%`  |
+| GRANT `manager`@`%` TO `lisi`@`%` |
++-----------------------------------+
+2 rows in set (0.00 sec)
+# 还是不能看到 testdb 数据库
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| performance_schema |
++--------------------+
+2 rows in set (0.00 sec)
+
+mysql>
+```
+
+> step7: `root` 下激活角色
+
+```shell
+mysql> set default role 'manager'@'%' to 'lisi'@'%';
+Query OK, 0 rows affected (0.01 sec)
+
+mysql>
+```
+
+> step8: 重新登录 lisi 账号
+
+```shell
+# 切换到 lisi 账号下，还是看不到 testdb 数据库
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| performance_schema |
++--------------------+
+2 rows in set (0.00 sec)
+
+mysql>
+
+# 重新登录 lisi 账号
+
+bash-5.1# mysql -ulisi -p123456
+mysql: [Warning] Using a password on the command line interface can be insecure.
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 14
+Server version: 8.4.11 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2026, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+# 能够看到 testdb 数据库了
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| performance_schema |
+| testdb             |
++--------------------+
+3 rows in set (0.01 sec)
+# manager 角色的权限也被展开到 权限列表中了
+mysql> show grants;
++------------------------------------------------------+
+| Grants for lisi@%                                    |
++------------------------------------------------------+
+| GRANT USAGE ON *.* TO `lisi`@`%`                     |
+| GRANT SELECT, UPDATE ON `testdb`.`emp` TO `lisi`@`%` |
+| GRANT `manager`@`%` TO `lisi`@`%`                    |
++------------------------------------------------------+
+3 rows in set (0.01 sec)
+
+mysql>
+```
 
 
 
