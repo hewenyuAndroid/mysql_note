@@ -413,7 +413,54 @@ ERROR 1142 (42000): DELETE command denied to user 'zhangsan'@'localhost' for tab
 mysql>
 ```
 
+## 2.2、查看权限
 
+```shell
+mysql> show grants;
++------------------------------------------------------------------+
+| Grants for zhangsan@localhost                                    |
++------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO `zhangsan`@`localhost`                     |
+| GRANT SELECT, UPDATE ON `testdb`.`emp` TO `zhangsan`@`localhost` |
++------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+mysql>
+mysql> show grants for current_user;
++------------------------------------------------------------------+
+| Grants for zhangsan@localhost                                    |
++------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO `zhangsan`@`localhost`                     |
+| GRANT SELECT, UPDATE ON `testdb`.`emp` TO `zhangsan`@`localhost` |
++------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+mysql> show grants for current_user();
++------------------------------------------------------------------+
+| Grants for zhangsan@localhost                                    |
++------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO `zhangsan`@`localhost`                     |
+| GRANT SELECT, UPDATE ON `testdb`.`emp` TO `zhangsan`@`localhost` |
++------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+mysql>
+```
+
+> 在 root 用户下，查看某个用户的权限
+
+```shell
+mysql> show grants for 'zhangsan'@'localhost';
++------------------------------------------------------------------+
+| Grants for zhangsan@localhost                                    |
++------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO `zhangsan`@`localhost`                     |
+| GRANT SELECT, UPDATE ON `testdb`.`emp` TO `zhangsan`@`localhost` |
++------------------------------------------------------------------+
+2 rows in set (0.01 sec)
+
+mysql>
+```
 
 
 
