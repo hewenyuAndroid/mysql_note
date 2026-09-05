@@ -462,6 +462,63 @@ mysql> show grants for 'zhangsan'@'localhost';
 mysql>
 ```
 
+## 2.3、收回权限
+
+收回权限就是取消已经赋予用户的某些权限。收回用户不必要的权限可以在一定程度上保证系统的安全性。`MySQL` 中使用 `REVOKE` 语句 取消用户的某些权限。使用 `REVOKE` 收回权限之后，用户账户的记录将从 `db`、`host`、`tables_priv`和`columns_priv`表中删除，但是用户账户记录仍然在user表中保存（删除`user` 表中的账户记录使用 `DROP USER` 语句）。
+
+```shell
+# 收回权限命令格式
+REVOKE 权限1,权限2,…权限n ON 数据库名称.表名称 FROM 用户名@用户地址;
+```
+
+> step1: 在 root 用户下，收回 zhangsan@localhost 用户对 testdb.emp 表的 update 权限
+
+```shell
+mysql> show grants for 'zhangsan'@'localhost';
++------------------------------------------------------------------+
+| Grants for zhangsan@localhost                                    |
++------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO `zhangsan`@`localhost`                     |
+| GRANT SELECT, UPDATE ON `testdb`.`emp` TO `zhangsan`@`localhost` |
++------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+# 收回 zhangsan@localhost 对 testdb.emp 表的 update 权限
+mysql> revoke update on testdb.emp from 'zhangsan'@'localhost';
+Query OK, 0 rows affected (0.01 sec)
+
+# 再次查询 zhangsan@localhost 用户授予的权限，可以看到 update 权限没了
+mysql> show grants for 'zhangsan'@'localhost';
++----------------------------------------------------------+
+| Grants for zhangsan@localhost                            |
++----------------------------------------------------------+
+| GRANT USAGE ON *.* TO `zhangsan`@`localhost`             |
+| GRANT SELECT ON `testdb`.`emp` TO `zhangsan`@`localhost` |
++----------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+mysql>
+```
+
+> step2: 切换到之前登录的 zhangsan@localhost 用户
+
+```shell
+# 查看权限
+mysql> show grants;
++----------------------------------------------------------+
+| Grants for zhangsan@localhost                            |
++----------------------------------------------------------+
+| GRANT USAGE ON *.* TO `zhangsan`@`localhost`             |
+| GRANT SELECT ON `testdb`.`emp` TO `zhangsan`@`localhost` |
++----------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+# 尝试调用 update 命令更新数据，发现没有权限
+mysql> update emp set lname='lisi2' where id = 2;
+ERROR 1142 (42000): UPDATE command denied to user 'zhangsan'@'localhost' for table 'emp'
+mysql>
+```
+
 
 
 
