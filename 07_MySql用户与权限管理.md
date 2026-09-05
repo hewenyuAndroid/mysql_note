@@ -264,14 +264,154 @@ SET PASSWORD FOR 'username'@'hostname'='new_password';
 给用户授权的方式有 `2` 种，分别是通过把 **角色赋予用户给用户授权** 和 **直接给用户授权**。用户是数据库的使用者，我们可以通过给用户授予访问数据库中资源的权限，来控制使用者对数据库的访问，消除安全隐患。
 
 ```shell
-GRANT 权限1,权限2,…权限n ON 数据库名称.表名称 TO 用户名@用户地址 [IDENTIFIED BY ‘密码口令’];
+# 数据库名称.* 表示授予用户这个数据库下所有表的权限
+# *.* 表示授予这个用户所有数据库所有表的权限
+GRANT 权限1,权限2,…权限n ON 数据库名称.表名称 TO 用户名@用户地址;
+
+# 授予 zhangsan@localhost 用户所有数据库所有表的所有权限 （不包括 grant 权限）
+grant all privileges on *.* to 'zhangsan'@'localhost'
 ```
+
+### 2.1.1、给 `zhangsan` 用户授予 `testdb` 数据库下 `emp` 表的 `select, update` 权限
+
+> step1: 在 root 用户下创建 zhangsan 账号
 
 ```shell
+mysql> create user 'zhangsan'@'localhost' identified by '123456';
+Query OK, 0 rows affected (0.04 sec)
 
+mysql> select user, host from mysql.user where user='zhangsan';
++----------+-----------+
+| user     | host      |
++----------+-----------+
+| zhangsan | localhost |
++----------+-----------+
+1 row in set (0.01 sec)
+
+mysql>
 ```
 
+在 `testdb` 数据库下，存在 `emp` 和 `user` 两张表
 
+```shell
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
+| testdb             |
++--------------------+
+5 rows in set (0.00 sec)
+
+mysql> use testdb;
+Database changed
+mysql> show tables;
++------------------+
+| Tables_in_testdb |
++------------------+
+| emp              |
+| user             |
++------------------+
+2 rows in set (0.00 sec)
+
+mysql>
+```
+
+> step2: 登录 zhangsan 账号查看
+
+```shell
+bash-5.1# mysql -u zhangsan -p
+Enter password:
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 12
+Server version: 8.4.11 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2026, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+# 可以看到 zhagnsan 账号只有 两个默认数据库的权限
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| performance_schema |
++--------------------+
+2 rows in set (0.00 sec)
+
+mysql>
+```
+
+> step3: 登录 root 账号，给 zhangsan 用户授予 `testdb.emp` 表 的 `select,update` 权限
+
+```shell
+mysql> grant select, update on testdb.emp to 'zhangsan'@'localhost';
+Query OK, 0 rows affected (0.02 sec)
+
+mysql>
+```
+
+> step4: 再次查看 zhangsan 用户的数据库权限
+
+```shell
+# 可以看到 被授予了 testdb.emp 这张表的 select，update 权限
+mysql> show grants;
++------------------------------------------------------------------+
+| Grants for zhangsan@localhost                                    |
++------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO `zhangsan`@`localhost`                     |
+| GRANT SELECT, UPDATE ON `testdb`.`emp` TO `zhangsan`@`localhost` |
++------------------------------------------------------------------+
+2 rows in set (0.01 sec)
+
+mysql>
+
+# 可以看到 testdb 数据库了
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| performance_schema |
+| testdb             |
++--------------------+
+3 rows in set (0.00 sec)
+
+mysql> use testdb;
+Database changed
+# testdb 数据库下只能看到 emp 表
+mysql> show tables;
++------------------+
+| Tables_in_testdb |
++------------------+
+| emp              |
++------------------+
+1 row in set (0.00 sec)
+# 查询数据
+mysql> select * from emp;
++----+----------+
+| id | lname    |
++----+----------+
+|  1 | zhangsan |
+|  2 | lisi     |
++----+----------+
+2 rows in set (0.00 sec)
+
+mysql>
+
+# 删除数据没有权限
+mysql> delete from emp where id = 1;
+ERROR 1142 (42000): DELETE command denied to user 'zhangsan'@'localhost' for table 'emp'
+mysql>
+```
 
 
 
